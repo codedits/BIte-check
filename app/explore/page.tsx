@@ -47,22 +47,22 @@ export default function ExplorePage() {
   // No additional filters; only search is available
 
   return (
-    <div className="min-h-screen pt-16 pb-8 px-4 bg-black">
+  <div className="min-h-screen pt-16 pb-8 px-3 sm:px-4 bg-black">
       <div className="max-w-7xl mx-auto">
         {/* Minimal Header */}
-        <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} className="text-center mb-8 py-8">
-          <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-orange-400 mb-2">Explore Restaurants</h1>
-          <p className="text-sm sm:text-base text-gray-300 max-w-3xl mx-auto">Find places to eat using a simple search — minimal UI, fast results.</p>
+        <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} className="text-center mb-6 sm:mb-8 py-6 sm:py-8">
+          <h1 className="text-2xl sm:text-4xl md:text-5xl font-extrabold text-orange-400 mb-2 leading-tight">Explore Restaurants</h1>
+          <p className="text-xs sm:text-sm md:text-base text-gray-300 max-w-2xl md:max-w-3xl mx-auto px-1">Find places to eat using a simple search — minimal UI, fast results.</p>
         </motion.div>
 
         {/* Search */}
         {/* Compact Search */}
-        <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.08 }} className="mb-6">
-          <div className="relative max-w-3xl mx-auto">
+        <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.08 }} className="mb-5 sm:mb-6">
+          <div className="relative max-w-xl sm:max-w-2xl md:max-w-3xl mx-auto">
             <input
               type="text"
               aria-label="Search restaurants"
-              className="w-full px-4 py-3 rounded-lg bg-black/60 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-orange-500"
+              className="w-full px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg bg-black/60 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-orange-500 text-sm sm:text-base"
               placeholder="Search restaurants"
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}

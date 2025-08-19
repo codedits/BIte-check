@@ -38,41 +38,56 @@ export default function ProfilePage() {
   };
 
   return (
-    <div className="min-h-screen bg-black pt-24 pb-12 px-4">
-      <div className="max-w-3xl mx-auto">
-        <div className="flex items-center justify-between mb-8">
+    <div className="min-h-screen bg-black pt-24 pb-16 px-4 sm:px-6">
+      <div className="max-w-4xl mx-auto w-full">
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6 mb-10">
           <div className="flex items-center gap-4">
-            <div className="w-12 h-12 bg-orange-500 rounded-full flex items-center justify-center text-white font-bold">{user?.name?.charAt(0)?.toUpperCase() || user?.email?.charAt(0)?.toUpperCase() || 'U'}</div>
-            <div>
-              <div className="text-lg font-semibold text-white">{user?.name || user?.email}</div>
-              <div className="text-sm text-gray-400">{user?.email}</div>
+            <div className="w-14 h-14 sm:w-16 sm:h-16 bg-orange-500 rounded-full flex items-center justify-center text-white font-bold text-xl">
+              {user?.name?.charAt(0)?.toUpperCase() || user?.email?.charAt(0)?.toUpperCase() || 'U'}
+            </div>
+            <div className="space-y-1 min-w-0">
+              <h1 className="text-xl sm:text-2xl font-semibold text-white truncate">{user?.name || user?.email}</h1>
+              <p className="text-sm text-gray-400 truncate">{user?.email}</p>
             </div>
           </div>
-          <div className="flex items-center gap-3">
-            <button onClick={() => setIsAddRestaurantModalOpen(true)} className="flex items-center gap-2 bg-white text-black px-3 py-2 rounded-md"> <FaPlus /> Add</button>
-            <button onClick={handleLogout} className="flex items-center gap-2 border border-white/10 px-3 py-2 rounded-md text-white"> <FaSignOutAlt /> Sign out</button>
+          <div className="flex flex-wrap items-center gap-3">
+            <button
+              onClick={() => setIsAddRestaurantModalOpen(true)}
+              className="flex items-center gap-2 bg-white text-black px-4 py-2 rounded-md text-sm font-medium w-full xs:w-auto justify-center"
+            >
+              <FaPlus /> Add
+            </button>
+            <button
+              onClick={handleLogout}
+              className="flex items-center gap-2 border border-white/15 px-4 py-2 rounded-md text-white text-sm font-medium w-full xs:w-auto justify-center"
+            >
+              <FaSignOutAlt /> Sign out
+            </button>
           </div>
         </div>
 
-        <div className="flex gap-6 mb-6">
-          <div className="p-4 bg-white/5 rounded-md text-center flex-1">
-            <div className="text-sm text-gray-400">Reviews</div>
-            <div className="text-xl font-bold text-white">{totalReviews}</div>
+        {/* Stats */}
+        <div className="grid grid-cols-2 gap-4 sm:gap-6 mb-10">
+          <div className="p-4 sm:p-5 bg-white/5 rounded-lg text-center flex flex-col gap-1">
+            <span className="text-[11px] tracking-wide uppercase text-gray-400">Reviews</span>
+            <span className="text-2xl font-bold text-white leading-none">{totalReviews}</span>
           </div>
-          <div className="p-4 bg-white/5 rounded-md text-center flex-1">
-            <div className="text-sm text-gray-400">Avg Rating</div>
-            <div className="text-xl font-bold text-white">{averageRating}</div>
+          <div className="p-4 sm:p-5 bg-white/5 rounded-lg text-center flex flex-col gap-1">
+            <span className="text-[11px] tracking-wide uppercase text-gray-400">Avg Rating</span>
+            <span className="text-2xl font-bold text-white leading-none">{averageRating}</span>
           </div>
         </div>
 
-        <div>
-          <h3 className="text-white font-semibold mb-3">Your recent reviews</h3>
+        {/* Recent Reviews */}
+        <section aria-labelledby="recent-reviews" className="mb-6">
+          <h2 id="recent-reviews" className="text-lg font-semibold text-white mb-4">Your recent reviews</h2>
           {reviewsLoading ? (
-            <div className="text-gray-400">Loading...</div>
+            <div className="text-gray-400 text-sm">Loading…</div>
           ) : userReviews.length === 0 ? (
-            <div className="text-gray-400">You haven't posted any reviews yet.</div>
+            <div className="text-gray-500 text-sm">You haven't posted any reviews yet.</div>
           ) : (
-            <div className="space-y-3">
+            <ul className="space-y-3">
               {userReviews
                 .filter((rev: Review) => {
                   const revUserAny: any = rev.userId;
@@ -85,42 +100,43 @@ export default function ProfilePage() {
                   return isOwner;
                 })
                 .slice(0, 6)
-                .map((rev: Review) => {
-                  return (
-                    <div key={rev._id} className="p-3 bg-white/5 rounded-md flex items-center justify-between">
-                      <div>
-                        <div className="text-sm font-medium text-white">{rev.restaurant}</div>
-                        <div className="text-xs text-gray-400">{new Date(rev.createdAt).toLocaleDateString()}</div>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <div className="text-sm font-semibold text-yellow-400">{rev.rating}/5</div>
-                        <button
-                          onClick={async () => {
-                            const ok = window.confirm('Delete this review? This cannot be undone.');
-                            if (!ok) return;
-                            try {
-                              const success = await deleteReview(rev._id);
-                              if (!success) alert('Unable to delete review');
-                            } catch (e) {
-                              alert('Unable to delete review');
-                            }
-                          }}
-                          title="Delete review"
-                          className="p-2 rounded-md text-sm text-red-400 hover:bg-white/5"
-                        >
-                          <FaTrash />
-                        </button>
-                      </div>
+                .map((rev: Review) => (
+                  <li key={rev._id} className="p-3 sm:p-4 bg-white/5 rounded-lg flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-6">
+                    <div className="min-w-0">
+                      <div className="text-sm font-medium text-white truncate">{rev.restaurant}</div>
+                      <div className="text-[11px] uppercase tracking-wide text-gray-400 mt-0.5">{new Date(rev.createdAt).toLocaleDateString()}</div>
                     </div>
-                  );
-                })}
-            </div>
+                    <div className="flex items-center justify-between sm:justify-end gap-4">
+                      <div className="text-sm font-semibold text-yellow-400 whitespace-nowrap">{rev.rating}/5</div>
+                      <button
+                        onClick={async () => {
+                          const ok = window.confirm('Delete this review? This cannot be undone.');
+                          if (!ok) return;
+                          try {
+                            const success = await deleteReview(rev._id);
+                            if (!success) alert('Unable to delete review');
+                          } catch {
+                            alert('Unable to delete review');
+                          }
+                        }}
+                        title="Delete review"
+                        className="p-2 rounded-md text-sm text-red-400 hover:bg-white/10 transition-colors"
+                      >
+                        <FaTrash />
+                      </button>
+                    </div>
+                  </li>
+                ))}
+            </ul>
           )}
-        </div>
+        </section>
 
-        <AddRestaurantModal isOpen={isAddRestaurantModalOpen} onClose={() => setIsAddRestaurantModalOpen(false)} />
+        <AddRestaurantModal
+          isOpen={isAddRestaurantModalOpen}
+          onClose={() => setIsAddRestaurantModalOpen(false)}
+        />
       </div>
     </div>
   );
 }
-              <div className="text-gray-400">You haven't posted any reviews yet.</div>
+

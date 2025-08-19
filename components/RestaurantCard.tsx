@@ -69,7 +69,7 @@ export default function RestaurantCard({ restaurant, onClick, featured = false, 
       )}
 
   {/* Image Section */}
-  <div className={compact ? 'relative h-36 overflow-hidden' : 'relative h-56 overflow-hidden'}>
+  <div className={compact ? 'relative h-36 sm:h-40 overflow-hidden' : 'relative h-48 sm:h-52 md:h-56 overflow-hidden'}>
         {(() => {
           const raw = (imageSrc || '').trim();
           if (!raw || raw.length < 5) {

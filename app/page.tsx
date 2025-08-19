@@ -42,19 +42,19 @@ export default function HomePage() {
   {/* about section intentionally omitted here */}
       </main>
       {/* Top Restaurants - horizontal scroll */}
-      <section className="px-6 md:px-10 mt-0">
+  <section className="px-4 sm:px-6 md:px-10 mt-0">
         <div className="max-w-6xl">
           <div className="flex items-end justify-between mb-4">
-            <h2 className="text-2xl md:text-3xl font-bold">Top Restaurants</h2>
-            <button onClick={() => router.push('/explore')} className="text-sm text-white/70 hover:text-white">View all</button>
+    <h2 className="text-xl sm:text-2xl md:text-3xl font-bold">Top Restaurants</h2>
+    <button onClick={() => router.push('/explore')} className="text-xs sm:text-sm text-white/70 hover:text-white">View all</button>
           </div>
-          <div className="flex gap-4 overflow-x-auto pb-2 snap-x snap-mandatory scrollbar-thin scrollbar-thumb-gray-700">
+  <div className="flex gap-3 sm:gap-4 overflow-x-auto pb-3 snap-x snap-mandatory scrollbar-hide sm:scrollbar-thin sm:scrollbar-thumb-gray-700 -mx-1 px-1" aria-label="Top restaurants horizontal list">
             {(restaurants ?? [])
               .slice()
               .sort((a, b) => (b.rating - a.rating) || (b.totalReviews - a.totalReviews))
               .slice(0, 10)
               .map((r) => (
-                <div key={r._id} className="w-[320px] h-[220px] snap-start">
+        <div key={r._id} className="w-[240px] sm:w-[280px] md:w-[320px] h-[200px] sm:h-[210px] md:h-[220px] snap-start flex-shrink-0">
                     {/* Lightweight card: image + name + rating */}
                     <div onClick={() => router.push(`/restaurant/${r._id}`)} className="cursor-pointer rounded-xl overflow-hidden border border-white/10 bg-white/5 hover:border-orange-500/30 transition flex flex-col h-full">
                       <div className="h-[140px] relative overflow-hidden flex-shrink-0">
@@ -80,10 +80,10 @@ export default function HomePage() {
                     </div>
                     <div className="p-4 flex-1">
                       <div className="flex items-center justify-between">
-                        <h3 className="font-semibold text-white line-clamp-1">{r.name}</h3>
-                        <span className="text-sm text-yellow-400 font-semibold">{r.rating?.toFixed?.(1) ?? r.rating}</span>
+                        <h3 className="font-semibold text-white line-clamp-1 text-sm sm:text-base">{r.name}</h3>
+                        <span className="text-xs sm:text-sm text-yellow-400 font-semibold">{r.rating?.toFixed?.(1) ?? r.rating}</span>
                       </div>
-                      <p className="text-xs text-white/60 mt-1 line-clamp-1">{r.cuisine} • {r.location}</p>
+                      <p className="text-[11px] sm:text-xs text-white/60 mt-1 line-clamp-1">{r.cuisine} • {r.location}</p>
                     </div>
                   </div>
                 </div>
@@ -93,16 +93,16 @@ export default function HomePage() {
       </section>
 
   {/* Left-aligned About / Intro placed below Top Restaurants */}
-  <section aria-labelledby="about-bitecheck" className="px-6 md:px-10 max-w-5xl mt-8 mb-12 md:mb-16">
+  <section aria-labelledby="about-bitecheck" className="px-4 sm:px-6 md:px-10 max-w-5xl mt-8 mb-12 md:mb-16">
         <div>
           <div className="max-w-3xl">
-            <h2 id="about-bitecheck" className="text-3xl md:text-4xl font-extrabold tracking-tight heading-glow mb-3">
+            <h2 id="about-bitecheck" className="text-2xl sm:text-3xl md:text-4xl font-extrabold tracking-tight heading-glow mb-3">
               What is <span className="text-orange-400">BiteCheck</span>?
             </h2>
-            <p className="text-white/80 leading-relaxed text-sm md:text-base mb-4">
+            <p className="text-white/80 leading-relaxed text-xs sm:text-sm md:text-base mb-4">
               BiteCheck is a community‑driven dining guide. Real, photo‑backed reviews surface stand‑out spots while a minimalist interface keeps the focus on food—not clutter. Discover where to eat next with signal over noise.
             </p>
-            <ul className="flex flex-wrap gap-2 text-[11px] md:text-xs font-medium">
+            <ul className="flex flex-wrap gap-1.5 sm:gap-2 text-[10px] sm:text-[11px] md:text-xs font-medium">
               <li className="px-3 py-1 rounded-full bg-white/10 border border-white/10">Curated Ratings</li>
               <li className="px-3 py-1 rounded-full bg-white/10 border border-white/10">Authentic Photos</li>
               <li className="px-3 py-1 rounded-full bg-white/10 border border-white/10">Fast Discovery</li>

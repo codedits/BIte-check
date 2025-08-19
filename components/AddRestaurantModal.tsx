@@ -250,61 +250,61 @@ export default function AddRestaurantModal({ isOpen, onClose, onSuccess }: AddRe
 
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-2">Category ratings *</label>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
               {/* Taste */}
-              <div className="flex items-center gap-4">
-                <span className="text-sm text-gray-300 w-28">Taste</span>
-                <div className="flex-1 flex items-center justify-center">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4 py-1">
+                <span className="text-xs sm:text-sm text-gray-300 font-medium w-full sm:w-28">Taste</span>
+                <div className="flex flex-row items-center gap-1">
                   {/* @ts-ignore */}
-                  <StarRating rating={taste} onRatingChange={(r) => setTaste(r)} />
+                  <StarRating rating={taste} onRatingChange={(r) => setTaste(r)} size="sm" />
+                  <span className="text-xs sm:text-sm text-white/70 ml-1 min-w-[20px] text-right">{taste || '-'}</span>
                 </div>
-                <span className="w-8 text-right text-white font-medium">{taste || '-'}</span>
               </div>
 
               {/* Presentation */}
-              <div className="flex items-center gap-4">
-                <span className="text-sm text-gray-300 w-28">Presentation</span>
-                <div className="flex-1 flex items-center justify-center">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4 py-1">
+                <span className="text-xs sm:text-sm text-gray-300 font-medium w-full sm:w-28">Presentation</span>
+                <div className="flex flex-row items-center gap-1">
                   {/* @ts-ignore */}
-                  <StarRating rating={presentation} onRatingChange={(r) => setPresentation(r)} />
+                  <StarRating rating={presentation} onRatingChange={(r) => setPresentation(r)} size="sm" />
+                  <span className="text-xs sm:text-sm text-white/70 ml-1 min-w-[20px] text-right">{presentation || '-'}</span>
                 </div>
-                <span className="w-8 text-right text-white font-medium">{presentation || '-'}</span>
               </div>
 
               {/* Service */}
-              <div className="flex items-center gap-4">
-                <span className="text-sm text-gray-300 w-28">Service</span>
-                <div className="flex-1 flex items-center justify-center">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4 py-1">
+                <span className="text-xs sm:text-sm text-gray-300 font-medium w-full sm:w-28">Service</span>
+                <div className="flex flex-row items-center gap-1">
                   {/* @ts-ignore */}
-                  <StarRating rating={service} onRatingChange={(r) => setService(r)} />
+                  <StarRating rating={service} onRatingChange={(r) => setService(r)} size="sm" />
+                  <span className="text-xs sm:text-sm text-white/70 ml-1 min-w-[20px] text-right">{service || '-'}</span>
                 </div>
-                <span className="w-8 text-right text-white font-medium">{service || '-'}</span>
               </div>
 
               {/* Ambiance */}
-              <div className="flex items-center gap-4">
-                <span className="text-sm text-gray-300 w-28">Ambiance</span>
-                <div className="flex-1 flex items-center justify-center">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4 py-1">
+                <span className="text-xs sm:text-sm text-gray-300 font-medium w-full sm:w-28">Ambiance</span>
+                <div className="flex flex-row items-center gap-1">
                   {/* @ts-ignore */}
-                  <StarRating rating={ambiance} onRatingChange={(r) => setAmbiance(r)} />
+                  <StarRating rating={ambiance} onRatingChange={(r) => setAmbiance(r)} size="sm" />
+                  <span className="text-xs sm:text-sm text-white/70 ml-1 min-w-[20px] text-right">{ambiance || '-'}</span>
                 </div>
-                <span className="w-8 text-right text-white font-medium">{ambiance || '-'}</span>
               </div>
 
-              {/* Value spans two columns */}
-              <div className="flex items-center gap-4 col-span-2">
-                <span className="text-sm text-gray-300 w-28">Value</span>
-                <div className="flex-1 flex items-center justify-center">
+              {/* Value spans two columns on larger screens */}
+              <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4 col-span-1 sm:col-span-2 py-1">
+                <span className="text-xs sm:text-sm text-gray-300 font-medium w-full sm:w-28">Value</span>
+                <div className="flex flex-row items-center gap-1">
                   {/* @ts-ignore */}
-                  <StarRating rating={value} onRatingChange={(r) => setValue(r)} />
+                  <StarRating rating={value} onRatingChange={(r) => setValue(r)} size="sm" />
+                  <span className="text-xs sm:text-sm text-white/70 ml-1 min-w-[20px] text-right">{value || '-'}</span>
                 </div>
-                <span className="w-8 text-right text-white font-medium">{value || '-'}</span>
               </div>
             </div>
 
-            <div className="mt-3 pt-3 border-t border-white/5 flex items-center justify-between">
-              <span className="text-sm text-gray-300">Overall (weighted)</span>
-              <div className="text-white font-semibold">
+            <div className="mt-4 pt-4 border-t border-white/5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+              <span className="text-sm text-gray-300 font-medium">Overall (weighted)</span>
+              <div className="text-white font-semibold text-lg sm:text-base">
                 {(() => {
                   const weights: Record<string, number> = { taste: 40, presentation: 15, service: 15, ambiance: 15, value: 15 };
                   const total = Object.values(weights).reduce((s, v) => s + v, 0);

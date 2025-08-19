@@ -4,7 +4,7 @@ import './globals.css';
 
 import Providers from '@/components/Providers';
 import Navbar from '@/components/Navbar';
-import Footer from '@/components/Footer';
+import AdaptiveFooter from '@/components/AdaptiveFooter';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -30,14 +30,14 @@ export default function RootLayout({
         <link rel="preconnect" href="https://res.cloudinary.com" />
         <link rel="preconnect" href="https://images.unsplash.com" />
       </head>
-      <body className={inter.className}>
+      <body className={`${inter.className} antialiased bg-black text-white`}>
         <Providers>
-          <div className="min-h-screen bg-black text-white">
+          <div className="min-h-screen flex flex-col pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]">
             <Navbar />
-            <main className="flex-1">
+            <main className="flex-1 focus:outline-none">
               {children}
             </main>
-            <Footer />
+            <AdaptiveFooter />
           </div>
         </Providers>
       </body>
