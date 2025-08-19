@@ -13,14 +13,9 @@ interface HeroSectionProps {
 }
 
 export default function HeroSection({ restaurants, loading, onSelect, variant = 'default' }: HeroSectionProps) {
-  // Simplified image rendering: use plain <img> for external hosts to avoid Next.js optimizer errors in dev
-  const SmartImage = ({ src, alt }: { src: string; alt: string }) => {
-    if (!src) return <div className="w-full h-full bg-neutral-900" />;
-    const normalized = src.trim().startsWith('http') ? src.trim() : `https://${src.trim()}`;
-    return (
-      // eslint-disable-next-line @next/next/no-img-element
-      <img src={normalized} alt={alt} className="w-full h-full object-cover" loading="eager" />
-    );
+  const toAbsolute = (src?: string) => {
+    if (!src) return '';
+    return src.trim().startsWith('http') ? src.trim() : `https://${src.trim()}`;
   };
   const heroItems = useMemo(() => {
     if (!restaurants) return [] as Restaurant[];
@@ -103,7 +98,17 @@ export default function HeroSection({ restaurants, loading, onSelect, variant = 
               if (!valid) {
                 return <div className="absolute inset-0 bg-neutral-900 flex items-center justify-center text-white/30 text-sm">No Image</div>;
               }
-              return <SmartImage src={raw!} alt={current.name} />;
+              const abs = toAbsolute(raw!);
+              return (
+                <Image
+                  src={abs}
+                  alt={current.name}
+                  fill
+                  priority
+                  sizes="100vw"
+                  className="object-cover"
+                />
+              );
             })()}
           </motion.div>
         </AnimatePresence>

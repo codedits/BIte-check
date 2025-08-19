@@ -1,6 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
+import Image from 'next/image';
 import { FaUser, FaCalendar } from 'react-icons/fa';
 import StarRating from './StarRating';
 import { Review } from '@/types';
@@ -32,10 +33,26 @@ export default function ReviewList({ reviews }: ReviewListProps) {
           {(review.imageUrl || (review.images && review.images.length > 0)) && (
             <div className="mb-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
               {review.imageUrl && (
-                <img src={review.imageUrl} alt={`Photo by ${review.username}`} className="w-full rounded-lg max-h-60 object-cover" />
+                <div className="relative w-full h-60">
+                  <Image
+                    src={/^https?:/i.test(review.imageUrl) ? review.imageUrl : `https://${review.imageUrl}`}
+                    alt={`Photo by ${review.username}`}
+                    fill
+                    sizes="(max-width:768px) 100vw, 50vw"
+                    className="object-cover rounded-lg"
+                  />
+                </div>
               )}
               {review.images && review.images.map((url, i) => (
-                <img key={url + i} src={url} alt={`Photo ${i + 1} by ${review.username}`} className="w-full rounded-lg max-h-60 object-cover" />
+                <div key={url + i} className="relative w-full h-60">
+                  <Image
+                    src={/^https?:/i.test(url) ? url : `https://${url}`}
+                    alt={`Photo ${i + 1} by ${review.username}`}
+                    fill
+                    sizes="(max-width:768px) 100vw, 50vw"
+                    className="object-cover rounded-lg"
+                  />
+                </div>
               ))}
             </div>
           )}

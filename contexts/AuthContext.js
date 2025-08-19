@@ -10,10 +10,12 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Silence debug logging in production
-  if (process.env.NODE_ENV === 'development') {
-    console.log('AuthProvider - session:', session);
-    console.log('AuthProvider - status:', status);
+  // Optional verbose auth logging (enable by setting NEXT_PUBLIC_AUTH_DEBUG=true)
+  if (process.env.NEXT_PUBLIC_AUTH_DEBUG === 'true' && process.env.NODE_ENV === 'development') {
+    // Log only when status changes to avoid spam
+    // (Effect below will update loading/user accordingly)
+    // eslint-disable-next-line no-console
+    console.log('[Auth] status:', status, 'session user id:', session?.user?.id);
   }
 
   useEffect(() => {

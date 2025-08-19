@@ -8,26 +8,31 @@ import StarRating from '@/components/StarRating';
 import { useReviews } from '@/hooks/useReviews';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import AddRestaurantModal from '@/components/AddRestaurantModal';
 
 export default function ProfilePage() {
   const { user, logout, isAuthenticated } = useAuth();
   const router = useRouter();
   const [isAddRestaurantModalOpen, setIsAddRestaurantModalOpen] = useState(false);
-  
-  // Redirect if not authenticated
+
+  // Always call the hook (pass undefined safely); the hook should internally no-op if no userId
+  const { reviews: userReviews, loading: reviewsLoading, deleteReview } = useReviews(user?.id);
+
+  // Redirect in effect to avoid conditional hook call
+  useEffect(() => {
+    if (!isAuthenticated) {
+      router.push('/auth/signin');
+    }
+  }, [isAuthenticated, router]);
+
   if (!isAuthenticated) {
-    router.push('/auth/signin');
     return (
       <div className="min-h-screen bg-gradient-to-br from-black via-gray-900 to-black flex items-center justify-center">
         <div className="text-white text-xl">Redirecting to sign in...</div>
       </div>
     );
   }
-
-  // Fetch user-specific reviews - only if authenticated
-  const { reviews: userReviews, loading: reviewsLoading, deleteReview } = useReviews(user?.id);
   
   // Show loading while checking authentication
   if (!user) {

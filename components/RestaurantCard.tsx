@@ -71,34 +71,20 @@ export default function RestaurantCard({ restaurant, onClick, featured = false, 
   {/* Image Section */}
   <div className={compact ? 'relative h-36 overflow-hidden' : 'relative h-56 overflow-hidden'}>
         {(() => {
-          const src = (imageSrc || '').trim();
-          if (!src || src.length < 5) {
+          const raw = (imageSrc || '').trim();
+          if (!raw || raw.length < 5) {
             return <div className="absolute inset-0 bg-gradient-to-br from-orange-800/40 via-black to-black flex items-center justify-center text-white/30 text-xs tracking-wide">No Image</div>;
           }
-          // Simple rule: if host is unsplash or cloudinary use Next Image, else plain img
-          try {
-            const url = new URL(src);
-            const optimized = ['images.unsplash.com', 'res.cloudinary.com'].includes(url.hostname);
-            if (optimized) {
-              // Use plain img to avoid Next image optimizer issues in development
-              return (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={src}
-                  alt={restaurant.name}
-                  className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-                  loading={featured ? 'eager' : 'lazy'}
-                />
-              );
-            }
-          } catch {}
+          let src = raw;
+          if (!/^https?:\/\//i.test(src)) src = `https://${src}`;
           return (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={src.startsWith('http') ? src : `https://${src}`}
+            <Image
+              src={src}
               alt={restaurant.name}
-              className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-              loading={featured ? 'eager' : 'lazy'}
+              fill
+              priority={featured}
+              sizes={compact ? '(max-width:640px) 50vw, 200px' : '(max-width:768px) 100vw, (max-width:1200px) 50vw, 400px'}
+              className="object-cover transition-transform duration-700 group-hover:scale-110"
             />
           );
         })()}
