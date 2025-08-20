@@ -97,8 +97,31 @@ export default function RestaurantDetailPage() {
     );
   }
 
+  const structuredData = restaurant ? {
+    '@context': 'https://schema.org',
+    '@type': 'Restaurant',
+    name: restaurant.name,
+    image: restaurant.image || undefined,
+    servesCuisine: restaurant.cuisine,
+    address: restaurant.location,
+    aggregateRating: restaurant.totalReviews ? {
+      '@type': 'AggregateRating',
+      ratingValue: restaurant.rating || 0,
+      reviewCount: restaurant.totalReviews
+    } : undefined,
+    url: typeof window !== 'undefined' ? window.location.href : undefined,
+    description: restaurant.description || undefined
+  } : null;
+
   return (
     <div className="min-h-screen bg-black">
+      {structuredData && (
+        <script
+          type="application/ld+json"
+          // eslint-disable-next-line react/no-danger
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
+        />
+      )}
       {/* Header */}
       <div className="relative h-64 md:h-80 overflow-hidden mt-16">
         {restaurant.image ? (
