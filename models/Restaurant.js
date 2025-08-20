@@ -65,11 +65,20 @@ const restaurantSchema = new mongoose.Schema({
   timestamps: true
 });
 
-// Create compound index for name and location to prevent duplicates
-restaurantSchema.index({ name: 1, location: 1 }, { unique: true });
-
-// Create text index for search functionality
-restaurantSchema.index({ name: 'text', cuisine: 'text', location: 'text', description: 'text' });
+// Indexes for performance
+try {
+  restaurantSchema.index({ name: 1, location: 1 }, { unique: true }); // prevent duplicates
+  restaurantSchema.index({ featured: 1, rating: -1, totalReviews: -1 }); // featured listing sorts
+  restaurantSchema.index({ rating: -1, totalReviews: -1 }); // top restaurants queries
+  restaurantSchema.index({ createdAt: -1 }); // recent additions
+  // Support quick filter + recent sort when fetching featured only
+  restaurantSchema.index({ featured: 1, createdAt: -1 });
+  // Partial index for restaurants missing images to accelerate fallback population (only docs lacking image)
+  restaurantSchema.index({ createdAt: -1 }, { partialFilterExpression: { image: { $in: ['', null] } }, name: 'no_image_recent' });
+  restaurantSchema.index({ name: 'text', cuisine: 'text', location: 'text', description: 'text' }); // text search
+} catch (_) {
+  // ignore index redefinition errors on hot reload in dev
+}
 
 const Restaurant = mongoose.models.Restaurant || mongoose.model('Restaurant', restaurantSchema);
 

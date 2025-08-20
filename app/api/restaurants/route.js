@@ -1,10 +1,16 @@
 import { NextResponse } from 'next/server';
+// Opt into dynamic = 'force-dynamic' only when POST/PATCH; keep GET cached
+export const revalidate = 30; // ISR-like revalidation period for static generation environments
 import { getServerSession } from 'next-auth';
 import connectDB from '@/lib/mongodb';
 import Restaurant from '@/models/Restaurant';
 import { authOptions } from '@/lib/auth';
 
- // GET - Fetch all restaurants or a single restaurant by id
+// Simple in-memory cache (per server instance) for list queries
+let __restaurantsCache = { ts: 0, data: null };
+const LIST_CACHE_TTL_MS = 30_000; // 30s
+
+// GET - Fetch all restaurants or a single restaurant by id
 export async function GET(request) {
   try {
     await connectDB();
@@ -20,7 +26,9 @@ export async function GET(request) {
       if (!restaurant) {
         return NextResponse.json({ error: 'Restaurant not found' }, { status: 404 });
       }
-      return NextResponse.json(restaurant);
+      const res = NextResponse.json(restaurant);
+      res.headers.set('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=120');
+      return res;
     }
 
     // Otherwise return (optionally featured-only) restaurants
@@ -31,6 +39,15 @@ export async function GET(request) {
 
     // Projection keeps payload small; adjust fields actually used by client cards
     const projection = 'name cuisine location priceRange rating totalReviews image featured createdAt';
+    // Attempt in-memory cache only for default list (no featured filter & no image population)
+    const now = Date.now();
+    if (!featuredOnly && populateImages !== 'true' && __restaurantsCache.data && (now - __restaurantsCache.ts) < LIST_CACHE_TTL_MS) {
+      const cachedRes = NextResponse.json(__restaurantsCache.data);
+      cachedRes.headers.set('Cache-Control', 'public, s-maxage=30, stale-while-revalidate=60');
+      cachedRes.headers.set('X-Cache', 'HIT');
+      return cachedRes;
+    }
+
     let restaurants = await Restaurant.find(query, projection, { lean: true })
       .sort(featuredOnly === 'true' ? { rating: -1, totalReviews: -1 } : { createdAt: -1 })
       .limit(featuredOnly === 'true' ? 50 : 200); // guardrail to prevent unbounded result growth
@@ -75,7 +92,14 @@ export async function GET(request) {
       }
     }
 
-  return NextResponse.json(restaurants);
+    // Update cache (only for default list w/out image population)
+    if (!featuredOnly && populateImages !== 'true') {
+      __restaurantsCache = { ts: Date.now(), data: restaurants };
+    }
+    const res = NextResponse.json(restaurants);
+    res.headers.set('Cache-Control', 'public, s-maxage=30, stale-while-revalidate=60');
+    res.headers.set('X-Cache', 'MISS');
+    return res;
   } catch (error) {
     console.error('Error fetching restaurants:', error);
     return NextResponse.json(

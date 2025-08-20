@@ -42,11 +42,11 @@ A modern, beautiful restaurant rating and review platform built with Next.js, Ta
 ### Components
 - **Navbar**: Top navigation with glass effects
 - **BottomNav**: Mobile-friendly bottom navigation
-- **RestaurantCard**: Beautiful restaurant cards with glass effects
+- **SimpleRestaurantCard**: Primary lightweight restaurant card (image, name, rating, subtitle)
 - **SearchBar**: Interactive search with glass styling
 - **StarRating**: Interactive star rating component
-- **ReviewList**: Display restaurant reviews
-- **AddReviewModal**: Modal for adding new reviews
+- **ReviewList**: Display restaurant reviews (with lightbox)
+- **AddReviewModal / EditReviewModal**: Create & edit reviews
 
 ## 🛠️ Installation & Setup
 
@@ -157,3 +157,11 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 ---
 
 Built with ❤️ using Next.js, TailwindCSS, and Framer Motion
+
+## 🧪 Performance & Indexes
+
+MongoDB indexes configured for fast query paths:
+- Restaurants: unique `{ name, location }`; compound `{ featured, rating, totalReviews }`; `{ rating, totalReviews }`; `{ createdAt }`; `{ featured, createdAt }`; partial `no_image_recent` (docs missing `image`); full‑text index on `name,cuisine,location,description`.
+- Reviews: `{ userId, createdAt }`; `{ restaurant, createdAt }`; `{ createdAt }`; compound `{ restaurant, images.0, createdAt }` (accelerates image fallback lookups when populating missing restaurant images).
+
+Indexes are created automatically on first model use (Mongoose). For fresh deployments you can trigger builds by hitting any API route. Monitor build progress in MongoDB Atlas (large collections may take time).

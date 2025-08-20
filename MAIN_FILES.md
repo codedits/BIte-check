@@ -18,10 +18,7 @@ Files inspected
   - Purpose: Top navigation bar (desktop + mobile button). Uses `next/navigation` `usePathname` to mark active links.
   - Exports: default Navbar component.
 
-- `components/RestaurantCard.tsx`
-  - Purpose: Reusable card to display restaurant summary with badges (rating, priceRange), featured flag, and click handler.
-  - Props: `restaurant: Restaurant`, `onClick?: () => void`, `featured?: boolean`.
-  - Visual: handles hover/featured styling.
+// Removed legacy `RestaurantCard.tsx` (replaced by `SimpleRestaurantCard`).
 
 - `lib/mongodb.js`
   - Purpose: Singleton MongoDB connection helper using mongoose.

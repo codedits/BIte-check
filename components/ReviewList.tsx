@@ -1,16 +1,29 @@
-'use client';
+"use client";
 
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import Image from 'next/image';
+// Use CloudImage for Cloudinary optimization
+import CloudImage from '@/components/CloudImage';
 import { FaUser, FaCalendar } from 'react-icons/fa';
 import StarRating from './StarRating';
 import { Review } from '@/types';
+import ImageLightbox from '@/components/ImageLightbox';
 
 interface ReviewListProps {
   reviews: Review[];
 }
 
 export default function ReviewList({ reviews }: ReviewListProps) {
+  const [lightboxImages, setLightboxImages] = useState<string[]>([]);
+  const [lightboxIndex, setLightboxIndex] = useState(0);
+  const openLightbox = (images: string[], index: number) => {
+    setLightboxImages(images);
+    setLightboxIndex(index);
+  };
+  const closeLightbox = () => {
+    setLightboxImages([]);
+    setLightboxIndex(0);
+  };
   if (reviews.length === 0) {
     return (
       <div className="glass-card text-center py-12">
@@ -22,67 +35,115 @@ export default function ReviewList({ reviews }: ReviewListProps) {
 
   return (
     <div className="space-y-4">
-      {reviews.map((review, index) => (
-        <motion.div
-          key={review._id}
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3, delay: index * 0.1 }}
-          className="glass-card"
-        >
-          {(review.imageUrl || (review.images && review.images.length > 0)) && (
-            <div className="mb-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {review.imageUrl && (
-                <div className="relative w-full h-60">
-                  <Image
-                    src={/^https?:/i.test(review.imageUrl) ? review.imageUrl : `https://${review.imageUrl}`}
-                    alt={`Photo by ${review.username}`}
-                    fill
-                    sizes="(max-width:768px) 100vw, 50vw"
-                    className="object-cover rounded-lg"
-                  />
+      {reviews.map((review, index) => {
+        // Normalize image list
+        const rawImages: string[] = [];
+        if (review.imageUrl) rawImages.push(review.imageUrl);
+        if (Array.isArray(review.images)) rawImages.push(...review.images);
+        const images = rawImages.filter(Boolean);
+        const showImages = images.slice(0, 4); // show up to 4 in grid
+        const remaining = images.length - showImages.length;
+
+        const renderImage = (url: string, i: number, overlayCount?: number) => {
+          const src = /^https?:/i.test(url) ? url : `https://${url}`;
+          return (
+            <button
+              type="button"
+              key={url + i}
+              onClick={() => openLightbox(images, i)}
+              className="relative group overflow-hidden rounded-lg aspect-[16/9] bg-black/30 focus:outline-none focus:ring-2 focus:ring-orange-500"
+            >
+              <CloudImage
+                src={src}
+                alt={`Photo ${i + 1} by ${review.username}`}
+                width={800}
+                height={450}
+                fillCrop
+                className="object-cover w-full h-full transition-transform duration-500 group-hover:scale-105"
+                loading="lazy"
+              />
+              {overlayCount && overlayCount > 0 && (
+                <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
+                  <span className="text-white font-semibold text-lg">+{overlayCount}</span>
                 </div>
               )}
-              {review.images && review.images.map((url, i) => (
-                <div key={url + i} className="relative w-full h-60">
-                  <Image
-                    src={/^https?:/i.test(url) ? url : `https://${url}`}
-                    alt={`Photo ${i + 1} by ${review.username}`}
-                    fill
-                    sizes="(max-width:768px) 100vw, 50vw"
-                    className="object-cover rounded-lg"
-                  />
-                </div>
-              ))}
+            </button>
+          );
+        };
+
+        // Layout variants
+  let gridContent: React.ReactElement | null = null;
+        if (showImages.length === 1) {
+          gridContent = (
+            <div className="mb-4">
+              {renderImage(showImages[0], 0)}
             </div>
-          )}
-          <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 sm:gap-4 mb-3 sm:mb-4">
-            <div className="flex items-center gap-3 sm:gap-4">
-              <div className="glass w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center flex-shrink-0">
-                <FaUser className="text-white text-sm sm:text-base" />
+          );
+        } else if (showImages.length === 2) {
+          gridContent = (
+            <div className="mb-4 grid grid-cols-2 gap-3">
+              {showImages.map((u, i) => renderImage(u, i))}
+            </div>
+          );
+        } else if (showImages.length === 3) {
+          gridContent = (
+            <div className="mb-4 grid grid-cols-3 gap-3">
+              <div className="col-span-2">{renderImage(showImages[0], 0)}</div>
+              <div className="flex flex-col gap-3">
+                {renderImage(showImages[1], 1)}
+                {renderImage(showImages[2], 2)}
               </div>
-              <div className="min-w-0">
-                <div className="font-semibold text-white text-sm sm:text-base">{review.username}</div>
-                <div className="flex items-center gap-2 text-xs sm:text-sm text-gray-400">
-                  <FaCalendar className="text-xs" />
-                  <span>{new Date(review.createdAt).toLocaleDateString()}</span>
+            </div>
+          );
+        } else if (showImages.length === 4) {
+          gridContent = (
+            <div className="mb-4 grid grid-cols-2 gap-3">
+              {showImages.map((u, i) => renderImage(u, i, i === 3 ? remaining : 0))}
+            </div>
+          );
+        }
+
+        return (
+          <motion.div
+            key={review._id}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, delay: index * 0.06 }}
+            className="glass-card"
+          >
+            {gridContent}
+            <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 sm:gap-4 mb-3 sm:mb-4">
+              <div className="flex items-center gap-3 sm:gap-4">
+                <div className="glass w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center flex-shrink-0">
+                  <FaUser className="text-white text-sm sm:text-base" />
+                </div>
+                <div className="min-w-0">
+                  <div className="font-semibold text-white text-sm sm:text-base">{review.username}</div>
+                  <div className="flex items-center gap-2 text-xs sm:text-sm text-gray-400">
+                    <FaCalendar className="text-xs" />
+                    <span>{new Date(review.createdAt).toLocaleDateString()}</span>
+                  </div>
                 </div>
               </div>
+              <div className="flex items-center gap-2">
+                <StarRating rating={review.rating} readonly size="sm" />
+                <span className="text-xs sm:text-sm text-gray-300 font-medium">{review.rating}</span>
+              </div>
             </div>
-            <div className="flex items-center gap-2">
-              <StarRating rating={review.rating} readonly size="sm" />
-              <span className="text-xs sm:text-sm text-gray-300 font-medium">
-                {review.rating}
-              </span>
-            </div>
-          </div>
-          
-          <p className="text-gray-300 leading-relaxed text-sm sm:text-base">
-            {review.comment}
-          </p>
-          {/* Removed per-review category breakdown (aggregated shown above) */}
-        </motion.div>
-      ))}
+            <p className="text-gray-300 leading-relaxed text-sm sm:text-base">
+              {review.comment}
+            </p>
+          </motion.div>
+        );
+      })}
+      {lightboxImages.length > 0 && (
+        <ImageLightbox
+          images={lightboxImages}
+          index={lightboxIndex}
+            onClose={closeLightbox}
+          onNavigate={(i) => setLightboxIndex(i)}
+        />
+      )}
     </div>
   );
 }

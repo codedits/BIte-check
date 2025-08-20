@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { FaEnvelope, FaLock, FaEye, FaEyeSlash } from 'react-icons/fa';
-import Image from 'next/image';
+import CloudImage from '@/components/CloudImage';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -40,13 +40,11 @@ export default function SignInPage() {
 
   return (
     <div className="relative min-h-screen w-full overflow-hidden">
-      <Image 
-        src="https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=1920&q=80" 
-        alt="Assorted gourmet dishes" 
-        fill 
-        priority
-        className="object-cover" 
-        sizes="100vw" 
+      <CloudImage
+        src="https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=1920&q=80"
+        alt="Assorted gourmet dishes"
+        className="object-cover w-full h-full"
+        loading="eager"
       />
       <div className="absolute inset-0 bg-black/70 backdrop-blur-sm [mask-image:linear-gradient(to_bottom,black,black,black,.6)]" />
       <div className="relative z-10 flex flex-col md:flex-row min-h-screen">

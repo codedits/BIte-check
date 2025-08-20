@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { FaEnvelope, FaLock, FaEye, FaEyeSlash } from 'react-icons/fa';
-import Image from 'next/image';
+import CloudImage from '@/components/CloudImage';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -55,13 +55,11 @@ export default function SignUpPage() {
   return (
   <div className="relative min-h-screen w-full overflow-hidden pt-15 md:pt-10">
       {/* Background (different food shot for signup) */}
-      <Image
+      <CloudImage
         src="https://images.unsplash.com/photo-1496412705862-e0088f16f791?q=80&w=1170&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
         alt="Shared dining table with gourmet dishes"
-        fill
-        priority
-        className="object-cover"
-        sizes="100vw"
+        className="object-cover w-full h-full"
+        loading="eager"
       />
       <div className="absolute inset-0 bg-black/70 backdrop-blur-sm [mask-image:linear-gradient(to_bottom,black,black,black,.6)]" />
 

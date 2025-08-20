@@ -46,10 +46,18 @@ const reviewSchema = new mongoose.Schema({
   timestamps: true
 });
 
-// Create indexes
-reviewSchema.index({ userId: 1 });
-reviewSchema.index({ restaurant: 1 });
+// Create indexes (query patterns: fetch by user, by restaurant, recent reviews)
+reviewSchema.index({ userId: 1, createdAt: -1 });
+reviewSchema.index({ restaurant: 1, createdAt: -1 });
 reviewSchema.index({ createdAt: -1 });
+// Optimizes image fallback lookup in /api/restaurants when populateImages=true:
+//   Review.find({ restaurant: { $in: [...] }, images: { $exists: true, $ne: [] } }).sort({ createdAt: -1 })
+// Using images.0 leverages existence of first element (faster than $exists/$ne filter during index scan)
+try {
+  reviewSchema.index({ restaurant: 1, 'images.0': 1, createdAt: -1 }, { name: 'restaurant_image_createdAt' });
+} catch (_) {
+  // defensive: ignore redefinition errors in hot reload
+}
 
 const Review = mongoose.models.Review || mongoose.model('Review', reviewSchema);
 

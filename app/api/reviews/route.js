@@ -114,22 +114,24 @@ export async function POST(request) {
 
     await newReview.save();
 
-    // Update restaurant rating after adding the review
-    const allReviewsForRestaurant = await Review.find({ restaurant: restaurant.trim() });
-    const totalRating = allReviewsForRestaurant.reduce((sum, rev) => sum + rev.rating, 0);
-    const averageRating = totalRating / allReviewsForRestaurant.length;
-    
-    // Prepare restaurant update payload
-    const restaurantUpdate = {
-      rating: Math.round(averageRating * 10) / 10,
-      totalReviews: allReviewsForRestaurant.length
-    };
+    // Incremental rating update (avoid scanning all reviews)
+    const currentRestaurant = await Restaurant.findOne({ name: restaurant.trim() }).select('rating totalReviews image').lean();
+    let restaurantUpdate = {};
+    if (currentRestaurant) {
+      const prevCount = currentRestaurant.totalReviews || 0;
+      const prevRating = currentRestaurant.rating || 0;
+      const newAvg = ((prevRating * prevCount) + newReview.rating) / (prevCount + 1);
+      restaurantUpdate = {
+        rating: Math.round(newAvg * 10) / 10,
+        totalReviews: prevCount + 1,
+      };
+    } else {
+      // Restaurant might not exist yet if review precedes creation (edge case)
+      restaurantUpdate = { rating: newReview.rating, totalReviews: 1 };
+    }
     // If this review has images and restaurant currently lacks image, set one
-    if (Array.isArray(newReview.images) && newReview.images.length > 0) {
-      const currentRestaurant = await Restaurant.findOne({ name: restaurant.trim() }).select('image').lean();
-      if (currentRestaurant && (!currentRestaurant.image || currentRestaurant.image.length < 5)) {
-        restaurantUpdate.image = newReview.images[0];
-      }
+    if (Array.isArray(newReview.images) && newReview.images.length > 0 && currentRestaurant && (!currentRestaurant.image || currentRestaurant.image.length < 5)) {
+      restaurantUpdate.image = newReview.images[0];
     }
     await Restaurant.findOneAndUpdate(
       { name: restaurant.trim() },
@@ -304,5 +306,95 @@ export async function DELETE(request) {
       { error: 'Failed to delete review' },
       { status: 500 }
     );
+  }
+}
+
+// PATCH - Edit an existing review (requires ownership)
+export async function PATCH(request) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session) {
+      return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+    }
+
+    const body = await request.json();
+    const { id, rating, comment, images, rating_breakdown } = body || {};
+    if (!id) {
+      return NextResponse.json({ error: 'Review id required' }, { status: 400 });
+    }
+
+    await connectDB();
+    const review = await Review.findById(id);
+    if (!review) {
+      return NextResponse.json({ error: 'Review not found' }, { status: 404 });
+    }
+
+    const sessionUserIdStr = session.user.id.toString();
+    let isOwner = false;
+    if (mongoose.Types.ObjectId.isValid(session.user.id)) {
+      isOwner = review.userId.equals(new mongoose.Types.ObjectId(session.user.id));
+    }
+    if (!isOwner) {
+      isOwner = String(review.userId) === sessionUserIdStr;
+    }
+    if (!isOwner) {
+      return NextResponse.json({ error: 'You can only edit your own review' }, { status: 403 });
+    }
+
+    const updates = {};
+    if (typeof rating === 'number') {
+      if (rating < 1 || rating > 5) {
+        return NextResponse.json({ error: 'Rating must be between 1 and 5' }, { status: 400 });
+      }
+      updates.rating = rating;
+    }
+    if (typeof comment === 'string') {
+      if (!comment.trim()) {
+        return NextResponse.json({ error: 'Comment cannot be empty' }, { status: 400 });
+      }
+      updates.comment = comment.trim();
+    }
+    if (Array.isArray(images)) {
+      updates.images = images.map(String).slice(0, 6); // allow replacing images (limit 6 for safety)
+    }
+    if (rating_breakdown && typeof rating_breakdown === 'object') {
+      const cats = ['taste','presentation','service','ambiance','value'];
+      for (const c of cats) {
+        const v = rating_breakdown[c];
+        if (!(typeof v === 'number' && v >= 1 && v <= 5)) {
+          return NextResponse.json({ error: `Invalid rating for ${c}` }, { status: 400 });
+        }
+      }
+      updates.rating_breakdown = {
+        taste: rating_breakdown.taste,
+        presentation: rating_breakdown.presentation,
+        service: rating_breakdown.service,
+        ambiance: rating_breakdown.ambiance,
+        value: rating_breakdown.value
+      };
+    }
+
+    if (!Object.keys(updates).length) {
+      return NextResponse.json({ error: 'No valid fields to update' }, { status: 400 });
+    }
+
+    await Review.updateOne({ _id: id }, { $set: updates });
+
+    // Recalculate restaurant rating if rating changed
+    if (updates.rating !== undefined) {
+      const restaurantName = review.restaurant;
+      const restaurantReviews = await Review.find({ restaurant: restaurantName }).select('rating').lean();
+      if (restaurantReviews.length) {
+        const totalRating = restaurantReviews.reduce((sum, r) => sum + (r.rating || 0), 0);
+        const avg = Math.round((totalRating / restaurantReviews.length) * 10) / 10;
+        await Restaurant.findOneAndUpdate({ name: restaurantName }, { rating: avg, totalReviews: restaurantReviews.length });
+      }
+    }
+
+    const updated = await Review.findById(id).populate('userId', 'email').lean();
+    return NextResponse.json({ message: 'Review updated', review: updated });
+  } catch (error) {
+    console.error('Error editing review:', error);
+    return NextResponse.json({ error: 'Failed to edit review' }, { status: 500 });
   }
 }

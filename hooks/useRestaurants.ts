@@ -4,7 +4,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Restaurant } from '@/types';
 
 async function fetchRestaurantsRequest(): Promise<Restaurant[]> {
-  const res = await fetch('/api/restaurants?populateImages=true');
+  const res = await fetch('/api/restaurants');
   if (!res.ok) throw new Error('Failed to fetch restaurants');
   const data: Restaurant[] = await res.json();
   // Deduplicate by _id

@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import StarRating from './StarRating';
-import { computeWeightedRating, CATEGORY_KEYS, allCategoriesRated } from '@/lib/ratings';
+import { computeWeightedRating, allCategoriesRated } from '@/lib/ratings';
 
 interface AddRestaurantModalProps {
   isOpen: boolean;
@@ -264,8 +264,7 @@ export default function AddRestaurantModal({ isOpen, onClose, onSuccess }: AddRe
               <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4 py-1">
                 <span className="text-xs sm:text-sm text-gray-300 font-medium w-full sm:w-28">Taste</span>
                 <div className="flex flex-row items-center gap-1">
-                  {/* @ts-ignore */}
-                  <StarRating rating={taste} onRatingChange={(r) => setTaste(r)} size="sm" />
+                  <StarRating rating={taste} onRatingChange={(r: number) => setTaste(r)} size="sm" />
                   <span className="text-xs sm:text-sm text-white/70 ml-1 min-w-[20px] text-right">{taste || '-'}</span>
                 </div>
               </div>
@@ -274,8 +273,7 @@ export default function AddRestaurantModal({ isOpen, onClose, onSuccess }: AddRe
               <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4 py-1">
                 <span className="text-xs sm:text-sm text-gray-300 font-medium w-full sm:w-28">Presentation</span>
                 <div className="flex flex-row items-center gap-1">
-                  {/* @ts-ignore */}
-                  <StarRating rating={presentation} onRatingChange={(r) => setPresentation(r)} size="sm" />
+                  <StarRating rating={presentation} onRatingChange={(r: number) => setPresentation(r)} size="sm" />
                   <span className="text-xs sm:text-sm text-white/70 ml-1 min-w-[20px] text-right">{presentation || '-'}</span>
                 </div>
               </div>
@@ -284,8 +282,7 @@ export default function AddRestaurantModal({ isOpen, onClose, onSuccess }: AddRe
               <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4 py-1">
                 <span className="text-xs sm:text-sm text-gray-300 font-medium w-full sm:w-28">Service</span>
                 <div className="flex flex-row items-center gap-1">
-                  {/* @ts-ignore */}
-                  <StarRating rating={service} onRatingChange={(r) => setService(r)} size="sm" />
+                  <StarRating rating={service} onRatingChange={(r: number) => setService(r)} size="sm" />
                   <span className="text-xs sm:text-sm text-white/70 ml-1 min-w-[20px] text-right">{service || '-'}</span>
                 </div>
               </div>
@@ -294,8 +291,7 @@ export default function AddRestaurantModal({ isOpen, onClose, onSuccess }: AddRe
               <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4 py-1">
                 <span className="text-xs sm:text-sm text-gray-300 font-medium w-full sm:w-28">Ambiance</span>
                 <div className="flex flex-row items-center gap-1">
-                  {/* @ts-ignore */}
-                  <StarRating rating={ambiance} onRatingChange={(r) => setAmbiance(r)} size="sm" />
+                  <StarRating rating={ambiance} onRatingChange={(r: number) => setAmbiance(r)} size="sm" />
                   <span className="text-xs sm:text-sm text-white/70 ml-1 min-w-[20px] text-right">{ambiance || '-'}</span>
                 </div>
               </div>
@@ -304,8 +300,7 @@ export default function AddRestaurantModal({ isOpen, onClose, onSuccess }: AddRe
               <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4 col-span-1 sm:col-span-2 py-1">
                 <span className="text-xs sm:text-sm text-gray-300 font-medium w-full sm:w-28">Value</span>
                 <div className="flex flex-row items-center gap-1">
-                  {/* @ts-ignore */}
-                  <StarRating rating={value} onRatingChange={(r) => setValue(r)} size="sm" />
+                  <StarRating rating={value} onRatingChange={(r: number) => setValue(r)} size="sm" />
                   <span className="text-xs sm:text-sm text-white/70 ml-1 min-w-[20px] text-right">{value || '-'}</span>
                 </div>
               </div>

@@ -1,20 +1,23 @@
 'use client';
 
-import { FaSignOutAlt, FaPlus, FaTrash } from 'react-icons/fa';
+import { FaSignOutAlt, FaPlus, FaTrash, FaEdit } from 'react-icons/fa';
 import { useReviews } from '@/hooks/useReviews';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import AddRestaurantModal from '@/components/AddRestaurantModal';
+import EditReviewModal from '@/components/EditReviewModal';
 import { Review } from '@/types';
 
 export default function ProfilePage() {
   const { user, logout, isAuthenticated, loading } = useAuth();
   const router = useRouter();
   const [isAddRestaurantModalOpen, setIsAddRestaurantModalOpen] = useState(false);
+  const [editingReview, setEditingReview] = useState<Review | null>(null);
+  const [isEditOpen, setIsEditOpen] = useState(false);
 
   // Keep fetching user reviews so stats remain accurate
-  const { reviews: userReviews = [], loading: reviewsLoading, deleteReview } = useReviews(user?.id);
+  const { reviews: userReviews = [], loading: reviewsLoading, deleteReview, editReview } = useReviews(user?.id);
 
   if (loading) {
     return (
@@ -106,8 +109,15 @@ export default function ProfilePage() {
                       <div className="text-sm font-medium text-white truncate">{rev.restaurant}</div>
                       <div className="text-[11px] uppercase tracking-wide text-gray-400 mt-0.5">{new Date(rev.createdAt).toLocaleDateString()}</div>
                     </div>
-                    <div className="flex items-center justify-between sm:justify-end gap-4">
+                      <div className="flex items-center justify-between sm:justify-end gap-3">
                       <div className="text-sm font-semibold text-yellow-400 whitespace-nowrap">{rev.rating}/5</div>
+                        <button
+                          onClick={() => { setEditingReview(rev); setIsEditOpen(true); }}
+                          title="Edit review"
+                          className="p-2 rounded-md text-sm text-blue-400 hover:bg-white/10 transition-colors"
+                        >
+                          <FaEdit />
+                        </button>
                       <button
                         onClick={async () => {
                           const ok = window.confirm('Delete this review? This cannot be undone.');
@@ -130,9 +140,14 @@ export default function ProfilePage() {
           )}
         </section>
 
-        <AddRestaurantModal
-          isOpen={isAddRestaurantModalOpen}
-          onClose={() => setIsAddRestaurantModalOpen(false)}
+        <AddRestaurantModal isOpen={isAddRestaurantModalOpen} onClose={() => setIsAddRestaurantModalOpen(false)} />
+        <EditReviewModal
+          isOpen={isEditOpen}
+          onClose={() => { setIsEditOpen(false); setEditingReview(null); }}
+          review={editingReview}
+          onSubmit={async (payload) => {
+            await editReview(payload);
+          }}
         />
       </div>
     </div>

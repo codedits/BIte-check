@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { FaSearch } from 'react-icons/fa';
-import RestaurantCard from '@/components/RestaurantCard';
+import SimpleRestaurantCard from '@/components/SimpleRestaurantCard';
 import { useRestaurants } from '@/hooks/useRestaurants';
 import { useRouter } from 'next/navigation';
 import { Restaurant } from '@/types';
@@ -120,18 +120,19 @@ export default function ExplorePage() {
 
       {/* Restaurant Grid */}
       {!loading && !error && filteredRestaurants.length > 0 ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
+        <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-5 md:gap-6">
           {filteredRestaurants.map((restaurant: Restaurant, index) => (
             <motion.div
               key={restaurant._id}
-              initial={{ opacity: 0, y: 20 }}
+              initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: index * 0.1 }}
+              transition={{ duration: 0.35, delay: index * 0.04 }}
+              className="flex"
             >
-              <RestaurantCard
+              <SimpleRestaurantCard
                 restaurant={restaurant}
                 onClick={() => handleRestaurantClick(restaurant._id)}
-                compact
+                className="w-full"
               />
             </motion.div>
           ))}

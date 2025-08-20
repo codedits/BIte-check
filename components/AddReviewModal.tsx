@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FaTimes } from 'react-icons/fa';
 import StarRating from './StarRating';
@@ -33,24 +33,47 @@ export default function AddReviewModal({
   const [files, setFiles] = useState<File[]>([]);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
+  // Removed size restriction
 
   const { user, isAuthenticated } = useAuth();
 
+  const overallValue = useMemo(() => computeWeightedRating(formData), [formData]);
+  const missingCategories = useMemo(() => {
+    const missing: string[] = [];
+    ['taste','presentation','service','ambiance','value'].forEach(k => { // keys align with rating fields
+      // @ts-ignore
+      if (!formData[k]) missing.push(k);
+    });
+    return missing;
+  }, [formData]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!isAuthenticated && !formData.username.trim()) {
+      setError('Please provide a username');
+      return;
+    }
 
     if (!isAuthenticated) {
       setError('Please sign in to add a review');
       return;
     }
 
-  if (!allCategoriesRated(formData) || !formData.comment.trim()) {
-      setError('Please rate all categories and provide a comment');
+    // Require a comment and at least one category rated
+    const hasAtLeastOne = ['taste','presentation','service','ambiance','value'].some(k => (formData as any)[k] > 0);
+    if (!formData.comment.trim()) {
+      setError('Please enter a comment');
+      return;
+    }
+    if (!hasAtLeastOne) {
+      setError('Please rate at least one category');
       return;
     }
 
     const images: string[] = [];
     try {
+      // Guard (should already be prevented by disabled button)
       if (files && files.length > 0) {
         setUploading(true);
         // limit to 3 files
@@ -76,7 +99,7 @@ export default function AddReviewModal({
         }
       }
       // Compute weighted overall rating (out of 5) and delegate single mutation to parent
-      const overallRating = computeWeightedRating(formData);
+  const overallRating = overallValue;
       await Promise.resolve(
         onSubmit({
           username: user?.username || formData.username,
@@ -159,7 +182,12 @@ export default function AddReviewModal({
 
               {/* Structured category ratings */}
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">Category ratings</label>
+                <label className="block text-sm font-medium text-gray-300 mb-2 flex items-center justify-between">
+                  <span>Category ratings</span>
+                  {missingCategories.length > 0 && (
+                    <span className="text-[11px] text-orange-300/80">Missing: {missingCategories.join(', ')}</span>
+                  )}
+                </label>
                 <div className="grid grid-cols-1 gap-3">
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-gray-300">Taste</span>
@@ -205,10 +233,7 @@ export default function AddReviewModal({
                   <div className="flex items-center justify-between mt-2 pt-2 border-t border-white/5">
                     <span className="text-sm text-gray-300">Overall (weighted)</span>
                     <div className="text-white font-semibold">
-                      {(() => {
-                        const val = computeWeightedRating(formData);
-                        return val > 0 ? `${val} / 5` : '- / 5';
-                      })()}
+                      {overallValue > 0 ? `${overallValue} / 5` : '- / 5'}
                     </div>
                   </div>
                 </div>
@@ -241,6 +266,7 @@ export default function AddReviewModal({
                   }}
                   className="w-full text-sm sm:text-base file:rounded file:bg-white/10 file:text-white file:py-2 file:px-3"
                 />
+                <p className="text-[11px] sm:text-xs text-gray-400 mt-1">Max 3 images.</p>
                 {files.length > 0 && (
                   <div className="text-sm text-gray-300 mt-2">Selected: {files.map((f) => f.name).join(', ')}</div>
                 )}
@@ -258,8 +284,9 @@ export default function AddReviewModal({
                 type="submit"
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
-                disabled={!formData.username || !allCategoriesRated(formData) || !formData.comment}
+                disabled={(!isAuthenticated && !formData.username.trim()) || !formData.comment.trim() || uploading}
                 className="glass-button w-full bg-white text-black hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed font-semibold py-2.5 sm:py-3 text-sm sm:text-base"
+                aria-disabled={(!isAuthenticated && !formData.username.trim()) || !formData.comment.trim() || uploading}
               >
                 Submit Review
               </motion.button>

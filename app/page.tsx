@@ -1,12 +1,12 @@
 "use client";
 import { useMemo } from 'react';
-import { motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import { useRestaurants } from '@/hooks/useRestaurants';
 import { useAuth } from '@/contexts/AuthContext';
 import { FaArrowRight } from 'react-icons/fa';
 import HeroSection from '@/components/HeroSection';
 import HomeSkeleton from '@/components/HomeSkeleton';
+import CloudImage from '@/components/CloudImage';
 
 export default function HomePage() {
   const router = useRouter();
@@ -34,7 +34,6 @@ export default function HomePage() {
           <HeroSection
             restaurants={restaurants}
             loading={loading}
-            onSelect={(id) => router.push(`/restaurant/${id}`)}
             variant="banner"
           />
         </section>
@@ -54,28 +53,17 @@ export default function HomePage() {
               .sort((a, b) => (b.rating - a.rating) || (b.totalReviews - a.totalReviews))
               .slice(0, 10)
               .map((r) => (
-  <div key={r._id} className="w-[250px] sm:w-[300px] md:w-[340px] h-[210px] sm:h-[220px] md:h-[230px] snap-start flex-shrink-0">
+  <div key={r._id} className="w-[250px] sm:w-[300px] md:w-[340px] snap-start flex-shrink-0">
                     {/* Lightweight card: image + name + rating */}
                     <div onClick={() => router.push(`/restaurant/${r._id}`)} className="cursor-pointer rounded-xl overflow-hidden border border-white/10 bg-white/5 hover:border-orange-500/30 transition flex flex-col h-full">
-                      <div className="h-[140px] relative overflow-hidden flex-shrink-0">
+                      <div className="relative aspect-[16/9] overflow-hidden flex-shrink-0">
                       {(() => {
                         const src = (r.image || '').trim();
                         if (!src || src.length < 5) {
                           return <div className="absolute inset-0 bg-gradient-to-br from-gray-800 to-gray-900 flex items-center justify-center text-white/30 text-xs tracking-wide">No Image</div>;
                         }
-                        try {
-                          const url = new URL(src);
-                          const final = src;
-                          return (
-                            // eslint-disable-next-line @next/next/no-img-element
-                            <img src={final} alt={r.name} className="w-full h-full object-cover" />
-                          );
-                        } catch {
-                          return (
-                            // eslint-disable-next-line @next/next/no-img-element
-                            <img src={src.startsWith('http') ? src : `https://${src}`} alt={r.name} className="w-full h-full object-cover" />
-                          );
-                        }
+                        const abs = src.startsWith('http') ? src : `https://${src}`;
+                        return <CloudImage src={abs} alt={r.name} width={640} height={360} fillCrop className="w-full h-full object-cover" loading="lazy" />;
                       })()}
                     </div>
                     <div className="p-4 flex-1">

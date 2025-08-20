@@ -42,65 +42,9 @@ export async function POST(request) {
     return NextResponse.json({ error: 'Server misconfiguration: missing Cloudinary credentials' }, { status: 500 });
   }
 
-    // Enforce maximum file size (700 KB)
-    const MAX_BYTES = 700 * 1024; // 700 KB
-
     const isDataUrl = typeof file === 'string' && file.startsWith('data:');
     const isRemoteUrl = typeof file === 'string' && /^https?:\/\//i.test(file);
-
-    if (isDataUrl) {
-      // data:[<mediatype>][;base64],<data>
-      const comma = file.indexOf(',');
-      const header = file.substring(0, comma);
-      const payload = file.substring(comma + 1);
-      // assume base64
-      const padding = (payload.endsWith('==') ? 2 : (payload.endsWith('=') ? 1 : 0));
-      const estimatedBytes = Math.ceil((payload.length * 3) / 4) - padding;
-      if (estimatedBytes > MAX_BYTES) {
-        return NextResponse.json({ error: 'File too large. Maximum allowed size is 700 KB.' }, { status: 413 });
-      }
-    } else if (isRemoteUrl) {
-      // Try HEAD first to get content-length
-      try {
-        const headResp = await fetch(file, { method: 'HEAD' });
-        if (headResp.ok) {
-          const len = headResp.headers.get('content-length');
-          if (len && Number(len) > MAX_BYTES) {
-            return NextResponse.json({ error: 'File too large. Maximum allowed size is 700 KB.' }, { status: 413 });
-          }
-        }
-      } catch (e) {
-        // HEAD failed; fall through to streaming check
-      }
-
-      // Stream the remote file and abort if it exceeds MAX_BYTES
-      try {
-        const controller = new AbortController();
-        const resp = await fetch(file, { signal: controller.signal });
-        if (!resp.ok) {
-          return NextResponse.json({ error: 'Failed to fetch remote file' }, { status: resp.status });
-        }
-
-        const reader = resp.body?.getReader && resp.body.getReader();
-        if (reader) {
-          let received = 0;
-          while (true) {
-            const { done, value } = await reader.read();
-            if (done) break;
-            received += value.byteLength || value.length || 0;
-            if (received > MAX_BYTES) {
-              // cancel fetch
-              try { controller.abort(); } catch (_) {}
-              return NextResponse.json({ error: 'File too large. Maximum allowed size is 700 KB.' }, { status: 413 });
-            }
-          }
-        }
-      } catch (streamErr) {
-        // If the streaming check fails for any reason, return an error
-        console.warn('Streaming size check failed:', streamErr && (streamErr.message || streamErr));
-        return NextResponse.json({ error: 'Unable to validate remote file size' }, { status: 400 });
-      }
-    } else {
+  if (!isDataUrl && !isRemoteUrl) {
       // Unknown file format (not data URL or http URL)
       return NextResponse.json({ error: 'Unsupported file format. Send a data URL or remote http(s) URL.' }, { status: 400 });
     }

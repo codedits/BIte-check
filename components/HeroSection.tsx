@@ -1,18 +1,20 @@
 "use client";
 import { useEffect, useState, useMemo } from 'react';
-import Image from 'next/image';
+import CloudImage from '@/components/CloudImage';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FaPlay, FaInfoCircle } from 'react-icons/fa';
+import { FaPlay } from 'react-icons/fa';
+import { useRouter } from 'next/navigation';
 import { Restaurant } from '@/types';
 
 interface HeroSectionProps {
   restaurants: Restaurant[] | null;
   loading: boolean;
-  onSelect?: (id: string) => void;
+  /** visual mode */
   variant?: 'default' | 'banner'; // banner = flush, shorter height, no border/rounding
 }
 
-export default function HeroSection({ restaurants, loading, onSelect, variant = 'default' }: HeroSectionProps) {
+export default function HeroSection({ restaurants, loading, variant = 'default' }: HeroSectionProps) {
+  const router = useRouter();
   const toAbsolute = (src?: string) => {
     if (!src) return '';
     return src.trim().startsWith('http') ? src.trim() : `https://${src.trim()}`;
@@ -99,16 +101,7 @@ export default function HeroSection({ restaurants, loading, onSelect, variant = 
                 return <div className="absolute inset-0 bg-neutral-900 flex items-center justify-center text-white/30 text-sm">No Image</div>;
               }
               const abs = toAbsolute(raw!);
-              return (
-                <Image
-                  src={abs}
-                  alt={current.name}
-                  fill
-                  priority
-                  sizes="100vw"
-                  className="object-cover"
-                />
-              );
+              return <CloudImage src={abs} alt={current.name} className="object-cover w-full h-full" loading="eager" />;
             })()}
           </motion.div>
         </AnimatePresence>
@@ -162,7 +155,7 @@ export default function HeroSection({ restaurants, loading, onSelect, variant = 
               <motion.button
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
-                onClick={() => onSelect?.(current._id)}
+                onClick={() => router.push(`/restaurant/${current._id}`)}
                 className="inline-flex items-center gap-2 rounded-md bg-orange-600/90 text-white px-4 py-2 text-sm font-medium hover:bg-orange-500 transition-colors duration-150"
               >
                 <FaPlay className="text-sm" />

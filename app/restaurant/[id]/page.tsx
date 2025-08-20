@@ -4,7 +4,7 @@ import { useEffect, useState, useMemo } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { motion } from "framer-motion";
 import { FaArrowLeft, FaMapMarkerAlt, FaUtensils, FaStar, FaPlus, FaChevronDown } from "react-icons/fa";
-import Image from "next/image";
+import CloudImage from '@/components/CloudImage';
 import AddReviewModal from "@/components/AddReviewModal";
 import ReviewList from "@/components/ReviewList";
 import { useAuth } from "@/contexts/AuthContext";
@@ -97,40 +97,16 @@ export default function RestaurantDetailPage() {
     );
   }
 
-  const structuredData = restaurant ? {
-    '@context': 'https://schema.org',
-    '@type': 'Restaurant',
-    name: restaurant.name,
-    image: restaurant.image || undefined,
-    servesCuisine: restaurant.cuisine,
-    address: restaurant.location,
-    aggregateRating: restaurant.totalReviews ? {
-      '@type': 'AggregateRating',
-      ratingValue: restaurant.rating || 0,
-      reviewCount: restaurant.totalReviews
-    } : undefined,
-    url: typeof window !== 'undefined' ? window.location.href : undefined,
-    description: restaurant.description || undefined
-  } : null;
-
   return (
     <div className="min-h-screen bg-black">
-      {structuredData && (
-        <script
-          type="application/ld+json"
-          // eslint-disable-next-line react/no-danger
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
-        />
-      )}
       {/* Header */}
       <div className="relative h-64 md:h-80 overflow-hidden mt-16">
         {restaurant.image ? (
-          <Image
+          <CloudImage
             src={restaurant.image}
             alt={restaurant.name}
-            fill
-            className="object-cover"
-            sizes="(max-width: 768px) 100vw, 1200px"
+            className="object-cover w-full h-full"
+            loading="eager"
           />
         ) : (
           <div className="w-full h-full bg-gradient-to-br from-gray-800 to-gray-900" />
