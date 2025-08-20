@@ -7,15 +7,6 @@ export interface Review {
   comment: string;
   imageUrl?: string;
   images?: string[];
-  detailedRatings?: {
-    tasteFlavor: number;
-    presentation: number;
-    ingredientsQuality: number;
-    serviceStaff: number;
-    ambiance: number;
-    cleanliness: number;
-    valueForMoney: number;
-  };
   rating_breakdown?: {
     taste: number;
     presentation: number;
@@ -45,6 +36,8 @@ export interface Restaurant {
   rating: number;
   totalReviews: number;
   image: string;
+  imageThumb?: string; // smaller version for list/cards
+  imageBlur?: string; // base64 blur placeholder
   featured?: boolean;
   addedBy: string;
   createdAt: string;

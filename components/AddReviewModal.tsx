@@ -5,11 +5,12 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { FaTimes } from 'react-icons/fa';
 import StarRating from './StarRating';
 import { useAuth } from '@/contexts/AuthContext';
+import { computeWeightedRating, allCategoriesRated } from '@/lib/ratings';
 
 interface AddReviewModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (review: { username: string; rating: number; comment: string; images?: string[] }) => void;
+  onSubmit: (review: { username?: string; rating: number; comment: string; images?: string[]; rating_breakdown: any }) => Promise<void> | void;
   restaurantName: string;
 }
 
@@ -27,7 +28,7 @@ export default function AddReviewModal({
   service: 0,
   ambiance: 0,
   value: 0,
-    comment: ''
+  comment: ''
   });
   const [files, setFiles] = useState<File[]>([]);
   const [uploading, setUploading] = useState(false);
@@ -43,9 +44,7 @@ export default function AddReviewModal({
       return;
     }
 
-    const categories = ['taste','presentation','service','ambiance','value'] as const;
-    const anyZero = categories.some((c) => (formData as any)[c] === 0);
-    if (anyZero || !formData.comment.trim()) {
+  if (!allCategoriesRated(formData) || !formData.comment.trim()) {
       setError('Please rate all categories and provide a comment');
       return;
     }
@@ -76,37 +75,25 @@ export default function AddReviewModal({
           }
         }
       }
-
-      // Submit review to API as JS version did
-      // compute weighted overall rating (out of 5)
-      const weights: Record<string, number> = { taste: 40, presentation: 15, service: 15, ambiance: 15, value: 15 };
-      const totalWeight = Object.values(weights).reduce((s, v) => s + v, 0);
-      const weightedSum = Object.entries(weights).reduce((sum, [k, w]) => sum + ((formData as any)[k] || 0) * w, 0);
-      const overallRating = Math.round((weightedSum / totalWeight) * 10) / 10; // one decimal, still on 1-5 scale
-
-  const response = await fetch('/api/reviews', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          restaurant: restaurantName,
+      // Compute weighted overall rating (out of 5) and delegate single mutation to parent
+      const overallRating = computeWeightedRating(formData);
+      await Promise.resolve(
+        onSubmit({
           username: user?.username || formData.username,
           rating: overallRating,
           comment: formData.comment.trim(),
-      images
+          images,
+          rating_breakdown: { taste: formData.taste, presentation: formData.presentation, service: formData.service, ambiance: formData.ambiance, value: formData.value }
         })
-      });
-
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || 'Failed to submit review');
-
-  onSubmit({ username: user?.username || formData.username, rating: overallRating, comment: formData.comment.trim(), images });
+      );
   setFormData({ username: '', taste: 0, presentation: 0, service: 0, ambiance: 0, value: 0, comment: '' });
       setFiles([]);
       setError('');
       onClose();
     } catch (err: unknown) {
-      const msg = err && typeof err === 'object' && 'message' in err ? String((err as { message?: unknown }).message) : 'Submission failed';
-      setError(msg);
+  const msg = err && typeof err === 'object' && 'message' in err ? String((err as { message?: unknown }).message) : 'Submission failed';
+  setError(msg);
+  // No rollback logic here (would require parent to manage optimistic list); could add callback for failure.
     } finally {
       setUploading(false);
     }
@@ -219,10 +206,7 @@ export default function AddReviewModal({
                     <span className="text-sm text-gray-300">Overall (weighted)</span>
                     <div className="text-white font-semibold">
                       {(() => {
-                        const weights: Record<string, number> = { taste: 40, presentation: 15, service: 15, ambiance: 15, value: 15 };
-                        const total = Object.values(weights).reduce((s, v) => s + v, 0);
-                        const sum = Object.entries(weights).reduce((acc, [k, w]) => acc + ((formData as any)[k] || 0) * w, 0);
-                        const val = total ? Math.round((sum / total) * 10) / 10 : 0;
+                        const val = computeWeightedRating(formData);
                         return val > 0 ? `${val} / 5` : '- / 5';
                       })()}
                     </div>
@@ -274,7 +258,7 @@ export default function AddReviewModal({
                 type="submit"
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
-                disabled={!formData.username || ['taste','presentation','service','ambiance','value'].some((c) => (formData as any)[c] === 0) || !formData.comment}
+                disabled={!formData.username || !allCategoriesRated(formData) || !formData.comment}
                 className="glass-button w-full bg-white text-black hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed font-semibold py-2.5 sm:py-3 text-sm sm:text-base"
               >
                 Submit Review

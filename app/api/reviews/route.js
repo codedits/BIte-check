@@ -81,6 +81,7 @@ export async function POST(request) {
     }
 
 
+
     if (comment.trim().length === 0) {
       return NextResponse.json(
         { error: 'Comment cannot be empty' },

@@ -1,8 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { eventBus, EVENTS } from '@/lib/eventBus';
 import StarRating from './StarRating';
+import { computeWeightedRating, CATEGORY_KEYS, allCategoriesRated } from '@/lib/ratings';
 
 interface AddRestaurantModalProps {
   isOpen: boolean;
@@ -30,7 +30,7 @@ export default function AddRestaurantModal({ isOpen, onClose, onSuccess }: AddRe
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!restaurantName || !cuisine || !restaurantLocation || !priceRange || !comment || taste === 0 || presentation === 0 || service === 0 || ambiance === 0 || value === 0) {
+  if (!restaurantName || !cuisine || !restaurantLocation || !priceRange || !comment || !allCategoriesRated({ taste, presentation, service, ambiance, value })) {
       setError('Please fill in all fields and rate all categories');
       return;
     }
@@ -39,26 +39,8 @@ export default function AddRestaurantModal({ isOpen, onClose, onSuccess }: AddRe
     setError('');
 
     try {
-      // First, create the restaurant
-      const restaurantResponse = await fetch('/api/restaurants', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include', // This is crucial for authentication
-        body: JSON.stringify({
-          name: restaurantName,
-          cuisine,
-          location: restaurantLocation,
-          priceRange,
-          description: comment
-        }),
-      });
-
-      if (!restaurantResponse.ok) {
-        const errorData = await restaurantResponse.json();
-        throw new Error(errorData.error || 'Failed to create restaurant');
-      }
+  // TODO: use React Query mutation + optimistic update; for now rely on invalidation after success
+  // We'll upload image (if any) first to have URL for restaurant + review
 
       // Optionally upload image and then create the review with imageUrl
       let imageUrl = '';
@@ -91,14 +73,43 @@ export default function AddRestaurantModal({ isOpen, onClose, onSuccess }: AddRe
         setUploading(false);
       }
 
+      // First, create / ensure restaurant now that we might have an image
+      // Create simple derived thumb (client-side naive approach) & placeholder blur (tiny base64) if we have an image
+      let imageThumb = '';
+      let imageBlur = '';
+      if (imageUrl) {
+        imageThumb = imageUrl; // For now reuse original; server could generate real thumb later
+        imageBlur = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGP09fX5DwAFfwJ/lNsqWQAAAABJRU5ErkJggg==';
+      }
+
+      const restaurantResponse = await fetch('/api/restaurants', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          name: restaurantName,
+          cuisine,
+          location: restaurantLocation,
+          priceRange,
+          description: comment,
+          image: imageUrl,
+          imageThumb,
+          imageBlur
+        }),
+      });
+
+      if (!restaurantResponse.ok) {
+        const errorData = await restaurantResponse.json();
+        throw new Error(errorData.error || 'Failed to create restaurant');
+      }
+
       // compute overall weighted rating
-      const weights: Record<string, number> = { taste: 40, presentation: 15, service: 15, ambiance: 15, value: 15 };
-      const totalWeight = Object.values(weights).reduce((s, v) => s + v, 0);
-      const weightedSum = (taste * weights.taste) + (presentation * weights.presentation) + (service * weights.service) + (ambiance * weights.ambiance) + (value * weights.value);
-      const overall = Math.round((weightedSum / totalWeight) * 10) / 10;
+  const overall = computeWeightedRating({ taste, presentation, service, ambiance, value });
 
       // Then, create the review with breakdown
-      const reviewResponse = await fetch('/api/reviews', {
+    const reviewResponse = await fetch('/api/reviews', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -109,7 +120,7 @@ export default function AddRestaurantModal({ isOpen, onClose, onSuccess }: AddRe
           rating: overall,
           rating_breakdown: { taste, presentation, service, ambiance, value },
           comment,
-          images: imageUrl ? [imageUrl] : []
+      images: imageUrl ? [imageUrl] : []
         }),
       });
 
@@ -118,12 +129,12 @@ export default function AddRestaurantModal({ isOpen, onClose, onSuccess }: AddRe
         throw new Error(errorData.error || 'Failed to create review');
       }
 
-      // Reset form and close modal
+  // Reset form and close modal
       setRestaurantName('');
       setCuisine('');
       setRestaurantLocation('');
       setPriceRange('');
-      setComment('');
+  setComment('');
   setTaste(0);
   setPresentation(0);
   setService(0);
@@ -131,10 +142,8 @@ export default function AddRestaurantModal({ isOpen, onClose, onSuccess }: AddRe
   setValue(0);
       onClose();
       
-      // Emit events to refresh data across components
-      eventBus.emit(EVENTS.RESTAURANT_ADDED);
-      eventBus.emit(EVENTS.REVIEW_ADDED);
-      eventBus.emit(EVENTS.DATA_REFRESH);
+  // Single unified refresh event to minimize duplicate fetches
+  // TODO: invalidate restaurant & reviews queries via React Query here
       
       // Call success callback if provided
       if (onSuccess) {
@@ -305,13 +314,7 @@ export default function AddRestaurantModal({ isOpen, onClose, onSuccess }: AddRe
             <div className="mt-4 pt-4 border-t border-white/5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
               <span className="text-sm text-gray-300 font-medium">Overall (weighted)</span>
               <div className="text-white font-semibold text-lg sm:text-base">
-                {(() => {
-                  const weights: Record<string, number> = { taste: 40, presentation: 15, service: 15, ambiance: 15, value: 15 };
-                  const total = Object.values(weights).reduce((s, v) => s + v, 0);
-                  const sum = (taste * weights.taste) + (presentation * weights.presentation) + (service * weights.service) + (ambiance * weights.ambiance) + (value * weights.value);
-                  const val = total ? Math.round((sum / total) * 10) / 10 : 0;
-                  return val > 0 ? `${val} / 5` : '- / 5';
-                })()}
+                {(() => { const val = computeWeightedRating({ taste, presentation, service, ambiance, value }); return val > 0 ? `${val} / 5` : '- / 5'; })()}
               </div>
             </div>
           </div>
@@ -328,6 +331,7 @@ export default function AddRestaurantModal({ isOpen, onClose, onSuccess }: AddRe
               required
             />
           </div>
+
 
           {/* Image Upload */}
           <div>

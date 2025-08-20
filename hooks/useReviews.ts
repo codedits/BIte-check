@@ -1,79 +1,58 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Review } from '@/types';
-import { eventBus, EVENTS } from '@/lib/eventBus';
+
+async function fetchReviews(userId?: string): Promise<Review[]> {
+  const url = userId ? `/api/reviews?userId=${userId}` : '/api/reviews';
+  const res = await fetch(url);
+  if (!res.ok) throw new Error('Failed to fetch reviews');
+  return res.json();
+}
+
+async function deleteReviewRequest(id: string): Promise<void> {
+  const res = await fetch(`/api/reviews?id=${id}`, { method: 'DELETE', credentials: 'include' });
+  if (!res.ok) {
+    const data = await res.json();
+    throw new Error(data.error || 'Failed to delete review');
+  }
+}
 
 export function useReviews(userId?: string) {
-  const [reviews, setReviews] = useState<Review[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const qc = useQueryClient();
+  const queryKey = ['reviews', userId || 'all'];
+  const { data, isLoading, error, refetch, isFetching } = useQuery({
+    queryKey,
+    queryFn: () => fetchReviews(userId),
+    staleTime: 30_000,
+  });
 
-  const fetchReviews = async () => {
-    try {
-      setLoading(true);
-      const url = userId ? `/api/reviews?userId=${userId}` : '/api/reviews';
-      const response = await fetch(url);
-      
-      if (!response.ok) {
-        throw new Error('Failed to fetch reviews');
-      }
-      
-      const data = await response.json();
-      setReviews(data);
-      setError(null);
-    } catch (err: any) {
-      setError(err.message);
-      console.error('Error fetching reviews:', err);
-    } finally {
-      setLoading(false);
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => deleteReviewRequest(id),
+  onMutate: async (id: string) => {
+      await qc.cancelQueries({ queryKey });
+      const prev = qc.getQueryData<Review[]>(queryKey) || [];
+  qc.setQueryData<Review[]>(queryKey, prev.filter((r: Review) => r._id !== id));
+      return { prev };
+    },
+  onError: (_err: unknown, _id: string, ctx: { prev?: Review[] } | undefined) => {
+      if (ctx?.prev) qc.setQueryData(queryKey, ctx.prev);
+    },
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey });
     }
+  });
+
+  const addReview = (review: Review | any) => {
+    qc.setQueryData<Review[]>(queryKey, (old = []) => [review as Review, ...old]);
   };
-
-  const addReview = (newReview: Review) => {
-    setReviews(prev => [newReview, ...prev]);
-  };
-
-  const deleteReview = async (reviewId: string) => {
-    try {
-      const response = await fetch(`/api/reviews?id=${reviewId}`, {
-        method: 'DELETE',
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to delete review');
-      }
-
-      // Remove the review from the local state
-      setReviews(prev => prev.filter(review => review._id !== reviewId));
-      
-      // Emit events to refresh other components
-      eventBus.emit(EVENTS.REVIEW_DELETED);
-      eventBus.emit(EVENTS.DATA_REFRESH);
-      
-      return true;
-    } catch (err: any) {
-      setError(err.message);
-      console.error('Error deleting review:', err);
-      return false;
-    }
-  };
-
-  useEffect(() => {
-    fetchReviews();
-  }, [userId]);
 
   return {
-    reviews,
-    loading,
-    error,
-    refetch: fetchReviews,
+    reviews: data || [],
+    loading: isLoading || isFetching,
+    error: error ? (error as Error).message : null,
+    refetch,
     addReview,
-    deleteReview
+    deleteReview: (id: string) => deleteMutation.mutateAsync(id)
   };
 }

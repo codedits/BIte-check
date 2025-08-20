@@ -33,16 +33,7 @@ const reviewSchema = new mongoose.Schema({
     trim: true,
     default: []
   },
-  detailedRatings: {
-    tasteFlavor: { type: Number, min: 1, max: 5 },
-    presentation: { type: Number, min: 1, max: 5 },
-    ingredientsQuality: { type: Number, min: 1, max: 5 },
-    serviceStaff: { type: Number, min: 1, max: 5 },
-    ambiance: { type: Number, min: 1, max: 5 },
-    cleanliness: { type: Number, min: 1, max: 5 },
-    valueForMoney: { type: Number, min: 1, max: 5 }
-  }
-  ,
+  // legacy detailedRatings removed (was unused)
   rating_breakdown: {
     taste: { type: Number, min: 1, max: 5 },
     presentation: { type: Number, min: 1, max: 5 },

@@ -80,46 +80,7 @@ export default function ReviewList({ reviews }: ReviewListProps) {
           <p className="text-gray-300 leading-relaxed text-sm sm:text-base">
             {review.comment}
           </p>
-          {/* Rating breakdown display */}
-          {review.rating_breakdown && (
-            <div className="mt-4 space-y-2 text-sm text-gray-300">
-              <div className="flex items-center justify-between">
-                <span className="w-24">Taste</span>
-                <div className="flex items-center gap-3">
-                  <StarRating rating={review.rating_breakdown.taste || 0} readonly size="sm" />
-                  <span className="text-xs text-gray-200">{review.rating_breakdown.taste}</span>
-                </div>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="w-24">Presentation</span>
-                <div className="flex items-center gap-3">
-                  <StarRating rating={review.rating_breakdown.presentation || 0} readonly size="sm" />
-                  <span className="text-xs text-gray-200">{review.rating_breakdown.presentation}</span>
-                </div>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="w-24">Service</span>
-                <div className="flex items-center gap-3">
-                  <StarRating rating={review.rating_breakdown.service || 0} readonly size="sm" />
-                  <span className="text-xs text-gray-200">{review.rating_breakdown.service}</span>
-                </div>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="w-24">Ambiance</span>
-                <div className="flex items-center gap-3">
-                  <StarRating rating={review.rating_breakdown.ambiance || 0} readonly size="sm" />
-                  <span className="text-xs text-gray-200">{review.rating_breakdown.ambiance}</span>
-                </div>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="w-24">Value</span>
-                <div className="flex items-center gap-3">
-                  <StarRating rating={review.rating_breakdown.value || 0} readonly size="sm" />
-                  <span className="text-xs text-gray-200">{review.rating_breakdown.value}</span>
-                </div>
-              </div>
-            </div>
-          )}
+          {/* Removed per-review category breakdown (aggregated shown above) */}
         </motion.div>
       ))}
     </div>

@@ -3,6 +3,8 @@ import { Inter } from 'next/font/google';
 import './globals.css';
 
 import Providers from '@/components/Providers';
+import QueryProvider from '@/components/QueryProvider';
+import ErrorBoundary from '@/components/ErrorBoundary';
 import Navbar from '@/components/Navbar';
 import AdaptiveFooter from '@/components/AdaptiveFooter';
 
@@ -31,15 +33,19 @@ export default function RootLayout({
         <link rel="preconnect" href="https://images.unsplash.com" />
       </head>
       <body className={`${inter.className} antialiased bg-black text-white`}>
-        <Providers>
-          <div className="min-h-screen flex flex-col pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]">
-            <Navbar />
-            <main className="flex-1 focus:outline-none">
-              {children}
-            </main>
-            <AdaptiveFooter />
-          </div>
-        </Providers>
+        <QueryProvider>
+          <Providers>
+            <div className="min-h-screen flex flex-col pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]">
+              <Navbar />
+              <main className="flex-1 focus:outline-none">
+                <ErrorBoundary>
+                  {children}
+                </ErrorBoundary>
+              </main>
+              <AdaptiveFooter />
+            </div>
+          </Providers>
+        </QueryProvider>
       </body>
     </html>
   );

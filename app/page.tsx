@@ -43,18 +43,18 @@ export default function HomePage() {
       </main>
       {/* Top Restaurants - horizontal scroll */}
   <section className="px-4 sm:px-6 md:px-10 mt-0">
-        <div className="max-w-6xl">
+        <div className="max-w-7xl mx-auto w-full">
           <div className="flex items-end justify-between mb-4">
     <h2 className="text-xl sm:text-2xl md:text-3xl font-bold">Top Restaurants</h2>
     <button onClick={() => router.push('/explore')} className="text-xs sm:text-sm text-white/70 hover:text-white">View all</button>
           </div>
-  <div className="flex gap-3 sm:gap-4 overflow-x-auto pb-3 snap-x snap-mandatory scrollbar-hide sm:scrollbar-thin sm:scrollbar-thumb-gray-700 -mx-1 px-1" aria-label="Top restaurants horizontal list">
+  <div className="flex gap-4 overflow-x-auto pb-4 snap-x snap-mandatory scrollbar-hide sm:scrollbar-thin sm:scrollbar-thumb-gray-700" aria-label="Top restaurants horizontal list">
             {(restaurants ?? [])
               .slice()
               .sort((a, b) => (b.rating - a.rating) || (b.totalReviews - a.totalReviews))
               .slice(0, 10)
               .map((r) => (
-        <div key={r._id} className="w-[240px] sm:w-[280px] md:w-[320px] h-[200px] sm:h-[210px] md:h-[220px] snap-start flex-shrink-0">
+  <div key={r._id} className="w-[250px] sm:w-[300px] md:w-[340px] h-[210px] sm:h-[220px] md:h-[230px] snap-start flex-shrink-0">
                     {/* Lightweight card: image + name + rating */}
                     <div onClick={() => router.push(`/restaurant/${r._id}`)} className="cursor-pointer rounded-xl overflow-hidden border border-white/10 bg-white/5 hover:border-orange-500/30 transition flex flex-col h-full">
                       <div className="h-[140px] relative overflow-hidden flex-shrink-0">

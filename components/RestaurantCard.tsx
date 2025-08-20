@@ -2,7 +2,7 @@
 
 import { motion } from 'framer-motion';
 import Image from 'next/image';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { FaMapMarkerAlt, FaUtensils, FaStar, FaHeart } from 'react-icons/fa';
 import { Restaurant } from '@/types';
 
@@ -13,42 +13,42 @@ interface RestaurantCardProps {
   compact?: boolean;
 }
 
+// Simple in-memory fallback cache (module scope)
+const fallbackImageCache = new Map<string, string>(); // key: restaurantId -> image URL
+
 export default function RestaurantCard({ restaurant, onClick, featured = false, compact = false }: RestaurantCardProps) {
-  const [imageSrc, setImageSrc] = useState<string>(restaurant.image || '');
+  const [imageSrc, setImageSrc] = useState<string>(restaurant.imageThumb || restaurant.image || '');
+  const [blurData, setBlurData] = useState<string | undefined>(restaurant.imageBlur);
+  const fetchRef = useRef(false);
 
   // If restaurant.image is missing, try to fetch recent reviews and use their images as a quick fallback
   useEffect(() => {
-    let mounted = true;
-    if (restaurant.image && restaurant.image.length > 3) {
-      setImageSrc(restaurant.image);
+    if (imageSrc && imageSrc.length > 4) return; // already have something
+    if (fallbackImageCache.has(restaurant._id)) {
+      setImageSrc(fallbackImageCache.get(restaurant._id)!);
       return;
     }
-
-    const fetchFallback = async () => {
+    if (fetchRef.current) return;
+    fetchRef.current = true;
+    let active = true;
+    (async () => {
       try {
         const res = await fetch(`/api/reviews?restaurant=${encodeURIComponent(restaurant.name)}`);
         if (!res.ok) return;
         const reviews = await res.json();
-        if (!mounted || !Array.isArray(reviews)) return;
+        if (!active || !Array.isArray(reviews)) return;
         for (const rev of reviews) {
-          if (rev.imageUrl) {
-            setImageSrc(rev.imageUrl);
-            return;
-          }
-          if (Array.isArray(rev.images) && rev.images.length) {
-            setImageSrc(rev.images[0]);
+          const candidate = rev.imageUrl || (Array.isArray(rev.images) && rev.images[0]);
+          if (candidate) {
+            fallbackImageCache.set(restaurant._id, candidate);
+            setImageSrc(candidate);
             return;
           }
         }
-      } catch (e) {
-        // ignore
-      }
-    };
-
-    fetchFallback();
-
-    return () => { mounted = false; };
-  }, [restaurant.name, restaurant.image]);
+      } catch {}
+    })();
+    return () => { active = false; };
+  }, [restaurant._id, restaurant.name, imageSrc]);
 
   return (
     <motion.div
@@ -84,6 +84,8 @@ export default function RestaurantCard({ restaurant, onClick, featured = false, 
               fill
               priority={featured}
               sizes={compact ? '(max-width:640px) 50vw, 200px' : '(max-width:768px) 100vw, (max-width:1200px) 50vw, 400px'}
+              placeholder={blurData ? 'blur' : 'empty'}
+              blurDataURL={blurData}
               className="object-cover transition-transform duration-700 group-hover:scale-110"
             />
           );

@@ -113,8 +113,7 @@ export default function ProfilePage() {
                           const ok = window.confirm('Delete this review? This cannot be undone.');
                           if (!ok) return;
                           try {
-                            const success = await deleteReview(rev._id);
-                            if (!success) alert('Unable to delete review');
+                            await deleteReview(rev._id);
                           } catch {
                             alert('Unable to delete review');
                           }

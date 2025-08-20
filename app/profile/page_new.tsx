@@ -68,13 +68,12 @@ export default function ProfilePage() {
   };
 
   const handleDeleteReview = async (reviewId: string) => {
-    if (confirm('Are you sure you want to delete this review?')) {
-      const success = await deleteReview(reviewId);
-      if (success) {
-        console.log('Review deleted successfully');
-      } else {
-        alert('Failed to delete review. Please try again.');
-      }
+    if (!confirm('Are you sure you want to delete this review?')) return;
+    try {
+      await deleteReview(reviewId);
+      console.log('Review deleted');
+    } catch {
+      alert('Failed to delete review. Please try again.');
     }
   };
 

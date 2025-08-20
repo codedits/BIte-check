@@ -46,6 +46,16 @@ const restaurantSchema = new mongoose.Schema({
     type: String,
     default: ''
   },
+  // Pre-generated or derived thumbnail (smaller size for cards)
+  imageThumb: {
+    type: String,
+    default: ''
+  },
+  // Blur placeholder (base64 tiny image) for next/image blurDataURL
+  imageBlur: {
+    type: String,
+    default: ''
+  },
   featured: {
     type: Boolean,
     default: false,

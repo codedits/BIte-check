@@ -1,15 +1,16 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { motion } from "framer-motion";
-import { FaArrowLeft, FaMapMarkerAlt, FaUtensils, FaStar, FaPlus } from "react-icons/fa";
+import { FaArrowLeft, FaMapMarkerAlt, FaUtensils, FaStar, FaPlus, FaChevronDown } from "react-icons/fa";
 import Image from "next/image";
 import AddReviewModal from "@/components/AddReviewModal";
 import ReviewList from "@/components/ReviewList";
-import { eventBus, EVENTS } from "@/lib/eventBus";
 import { useAuth } from "@/contexts/AuthContext";
 import { Restaurant, Review } from '@/types';
+import { useRestaurant } from '@/hooks/useRestaurant';
+import { useRestaurantReviews } from '@/hooks/useRestaurantReviews';
 
 export default function RestaurantDetailPage() {
   const router = useRouter();
@@ -17,56 +18,35 @@ export default function RestaurantDetailPage() {
   const id = params?.id as string | undefined;
   const { isAuthenticated } = useAuth();
 
-  const [restaurant, setRestaurant] = useState<Restaurant | null>(null);
-  const [reviews, setReviews] = useState<Review[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
+  const { restaurant, loading: restaurantLoading, error: restaurantError } = useRestaurant(id);
+  const { reviews, loading: reviewsLoading, error: reviewsError, addReview } = useRestaurantReviews(restaurant?.name);
+  const loading = restaurantLoading || reviewsLoading;
+  const error = restaurantError || reviewsError;
   const [isReviewOpen, setIsReviewOpen] = useState(false);
+  const [showBreakdown, setShowBreakdown] = useState(false);
 
-  useEffect(() => {
-    if (!id) return;
-
-    const fetchData = async () => {
-      setLoading(true);
-      try {
-        // Fetch restaurant
-        const resR = await fetch(`/api/restaurants?id=${id}`);
-        if (!resR.ok) throw new Error("Failed to load restaurant");
-        const rData = await resR.json();
-        setRestaurant(rData as Restaurant);
-
-        // Fetch reviews for this restaurant (by name)
-        const resRev = await fetch(`/api/reviews?restaurant=${encodeURIComponent((rData as Restaurant).name)}`);
-        if (!resRev.ok) throw new Error("Failed to load reviews");
-        const revData = await resRev.json();
-        setReviews(revData as Review[] || []);
-        setError(null);
-      } catch (err) {
-        console.error(err);
-        setError((err as Error).message || "An error occurred");
-      } finally {
-        setLoading(false);
+  const ratingBreakdown = useMemo(() => {
+    if (!reviews.length) return null;
+    const cats = ['taste','presentation','service','ambiance','value'] as const;
+    const sums: Record<string, number> = {}; const counts: Record<string, number> = {};
+    for (const c of cats) { sums[c] = 0; counts[c] = 0; }
+    let have = false;
+    for (const rev of reviews) {
+      if (rev.rating_breakdown) {
+        have = true;
+        for (const c of cats) {
+          const v = (rev.rating_breakdown as any)[c];
+            if (typeof v === 'number') { sums[c] += v; counts[c]++; }
+        }
       }
-    };
+    }
+    if (!have) return null;
+    const avg: Record<string, number> = {};
+    for (const c of cats) avg[c] = counts[c] ? parseFloat((sums[c]/counts[c]).toFixed(2)) : 0;
+    return avg;
+  }, [reviews]);
 
-    fetchData();
-  }, [id]);
-
-  useEffect(() => {
-    const handleReviewAdded = () => {
-      // Refresh reviews when a new review is added elsewhere
-      if (!restaurant) return;
-      fetch(`/api/reviews?restaurant=${encodeURIComponent(restaurant.name)}`)
-        .then((r) => r.json())
-        .then((data) => setReviews(data || []))
-        .catch((e) => console.error(e));
-    };
-
-    eventBus.on(EVENTS.REVIEW_ADDED, handleReviewAdded);
-    return () => {
-      eventBus.off(EVENTS.REVIEW_ADDED, handleReviewAdded);
-    };
-  }, [restaurant]);
+  // Legacy fetch & event bus removed; React Query handles cache & updates.
 
   const handleOpenReview = () => {
     if (!isAuthenticated) {
@@ -76,17 +56,20 @@ export default function RestaurantDetailPage() {
     setIsReviewOpen(true);
   };
 
-  const handleSubmitReview = async (formData: { username?: string; rating: number; comment: string; imageUrl?: string; images?: string[] }) => {
+  const handleSubmitReview = async (formData: { username?: string; rating: number; comment: string; images?: string[]; rating_breakdown?: any }) => {
     if (!restaurant) return;
     try {
-      // Modal already posts review; just refresh and emit
-      const updated = await fetch(`/api/reviews?restaurant=${encodeURIComponent(restaurant.name)}`);
-      const updatedData = await updated.json();
-      setReviews((updatedData as Review[]) || []);
-      eventBus.emit(EVENTS.REVIEW_ADDED, { restaurant: restaurant.name });
+      await addReview({
+        restaurant: restaurant.name,
+        rating: formData.rating,
+        comment: formData.comment,
+        images: formData.images || [],
+        rating_breakdown: formData.rating_breakdown,
+        username: formData.username
+      });
     } catch (err) {
-      console.error('Submit review refresh error:', err);
-      alert((err as Error).message || 'Failed to refresh reviews');
+      console.error('Submit review error:', err);
+      alert((err as Error).message || 'Failed to add review');
     }
   };
 
@@ -142,7 +125,7 @@ export default function RestaurantDetailPage() {
         </motion.button>
       </div>
 
-      {/* Content */}
+  {/* Content */}
       <div className="max-w-4xl mx-auto px-6 py-8">
         {/* Restaurant Info */}
         <motion.div
@@ -171,10 +154,11 @@ export default function RestaurantDetailPage() {
           </div>
 
           {restaurant.description && (
-            <p className="text-gray-300 leading-relaxed text-lg max-w-3xl">
+            <p className="text-gray-300 leading-relaxed text-lg max-w-3xl mb-6">
               {restaurant.description}
             </p>
           )}
+
         </motion.div>
 
         {/* Reviews Section */}
@@ -214,7 +198,43 @@ export default function RestaurantDetailPage() {
               </motion.button>
             </div>
           ) : (
-            <ReviewList reviews={reviews} />
+            <>
+              <ReviewList reviews={reviews} />
+              {ratingBreakdown && (
+                <div className="pt-8">
+                  <div className="mb-6">
+                    <button
+                      type="button"
+                      onClick={() => setShowBreakdown(v => !v)}
+                      className="w-full flex items-center justify-between px-5 py-4 rounded-xl bg-white/5 border border-white/10 hover:border-orange-500/40 transition-colors text-left"
+                      aria-expanded={showBreakdown}
+                      aria-controls="rating-breakdown-panel"
+                    >
+                      <div>
+                        <div className="text-sm font-semibold text-white tracking-wide">Rating Breakdown</div>
+                        <div className="text-xs text-gray-400 mt-1">Average category scores (click to {showBreakdown ? 'hide' : 'view'})</div>
+                      </div>
+                      <FaChevronDown className={`text-gray-300 transition-transform ${showBreakdown ? 'rotate-180' : ''}`} />
+                    </button>
+                  </div>
+                  {showBreakdown && (
+                    <div id="rating-breakdown-panel" className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      {Object.entries(ratingBreakdown).map(([k,v]) => (
+                        <div key={k} className="p-4 rounded-lg bg-white/5 border border-white/10 flex flex-col gap-2">
+                          <div className="flex items-center justify-between text-sm text-gray-300">
+                            <span className="capitalize font-medium">{k}</span>
+                            <span className="text-white font-semibold">{v}</span>
+                          </div>
+                          <div className="h-2 w-full bg-white/10 rounded overflow-hidden">
+                            <div className="h-full bg-gradient-to-r from-orange-500 to-red-500" style={{ width: `${(v/5)*100}%` }} />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </>
           )}
         </motion.div>
       </div>

@@ -20,8 +20,8 @@ export default function ExplorePage() {
     // Apply search filter only
     if (searchQuery) {
       filtered = filtered.filter((restaurant: Restaurant) =>
-        restaurant.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        restaurant.description.toLowerCase().includes(searchQuery.toLowerCase())
+        (restaurant.name ?? '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (restaurant.description ?? '').toLowerCase().includes(searchQuery.toLowerCase())
       );
     }
 
