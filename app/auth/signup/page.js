@@ -54,11 +54,11 @@ export default function SignUpPage() {
 
   return (
   <div className="relative min-h-screen w-full overflow-hidden pt-15 md:pt-10">
-      {/* Background (different food shot for signup) */}
+      {/* Background (absolute) */}
       <CloudImage
         src="https://images.unsplash.com/photo-1496412705862-e0088f16f791?q=80&w=1170&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
         alt="Shared dining table with gourmet dishes"
-        className="object-cover w-full h-full"
+        className="absolute inset-0 object-cover w-full h-full -z-10"
         loading="eager"
       />
       <div className="absolute inset-0 bg-black/70 backdrop-blur-sm [mask-image:linear-gradient(to_bottom,black,black,black,.6)]" />

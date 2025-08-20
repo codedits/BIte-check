@@ -40,11 +40,11 @@ export default function SignInPage() {
 
   return (
   <div className="relative min-h-screen w-full overflow-hidden pt-20 md:pt-24">
-      {/* Background Image */}
+      {/* Background Image (absolute so content sits on top) */}
       <CloudImage
         src="https://images.unsplash.com/photo-1600891964092-4316c288032e?auto=format&fit=crop&w=1920&q=80"
         alt="Gourmet food presentation"
-        className="object-cover w-full h-full"
+        className="absolute inset-0 object-cover w-full h-full -z-10"
         loading="eager"
       />
       {/* Gradient / Overlay */}
