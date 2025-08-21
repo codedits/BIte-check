@@ -11,7 +11,7 @@ interface EditReviewModalProps {
 	isOpen: boolean;
 	onClose: () => void;
 	review: Review | null;
-	onSubmit: (payload: { id: string; rating: number; comment: string; images?: string[]; rating_breakdown: any }) => Promise<void> | void;
+	onSubmit: (payload: { id: string; rating: number; comment: string; images?: string[]; rating_breakdown: any; restaurantName?: string; restaurantLocation?: string }) => Promise<void> | void;
 }
 
 export default function EditReviewModal({ isOpen, onClose, review, onSubmit }: EditReviewModalProps) {
@@ -21,7 +21,9 @@ export default function EditReviewModal({ isOpen, onClose, review, onSubmit }: E
 		service: 0,
 		ambiance: 0,
 		value: 0,
-		comment: ''
+		comment: '',
+		restaurantName: '',
+		restaurantLocation: ''
 	});
 	const [files, setFiles] = useState<File[]>([]);
 	const [uploading, setUploading] = useState(false);
@@ -35,7 +37,9 @@ export default function EditReviewModal({ isOpen, onClose, review, onSubmit }: E
 				service: review.rating_breakdown?.service || 0,
 				ambiance: review.rating_breakdown?.ambiance || 0,
 				value: review.rating_breakdown?.value || 0,
-				comment: review.comment || ''
+				comment: review.comment || '',
+				restaurantName: review.restaurant || '',
+				restaurantLocation: (review as any).location || ''
 			});
 		}
 	}, [review]);
@@ -76,7 +80,9 @@ export default function EditReviewModal({ isOpen, onClose, review, onSubmit }: E
 				rating: overallValue,
 				comment: formData.comment.trim(),
 				images: newImages,
-				rating_breakdown: { taste: formData.taste, presentation: formData.presentation, service: formData.service, ambiance: formData.ambiance, value: formData.value }
+				rating_breakdown: { taste: formData.taste, presentation: formData.presentation, service: formData.service, ambiance: formData.ambiance, value: formData.value },
+				restaurantName: formData.restaurantName?.trim(),
+				restaurantLocation: formData.restaurantLocation?.trim()
 			}));
 			onClose();
 		} catch (err: any) {
@@ -114,6 +120,18 @@ export default function EditReviewModal({ isOpen, onClose, review, onSubmit }: E
 							<button onClick={handleClose} className="glass-button p-2 hover:bg-red-500/20 hover:text-red-400"><FaTimes /></button>
 						</div>
 						<form onSubmit={handleSubmit} className="space-y-4">
+							{/* Restaurant meta edits */}
+							<div className="grid grid-cols-1 gap-3">
+								<div>
+									<label className="block text-sm font-medium text-gray-300 mb-1">Restaurant Name</label>
+									<input className="glass-input w-full" value={formData.restaurantName} onChange={(e)=> setFormData({ ...formData, restaurantName: e.target.value })} placeholder="Restaurant name" />
+								</div>
+								<div>
+									<label className="block text-sm font-medium text-gray-300 mb-1">Location</label>
+									<input className="glass-input w-full" value={formData.restaurantLocation} onChange={(e)=> setFormData({ ...formData, restaurantLocation: e.target.value })} placeholder="City / Area" />
+								</div>
+							</div>
+
 							<div className="grid grid-cols-1 gap-3">
 								{(['taste','presentation','service','ambiance','value'] as const).map(key => (
 									<div key={key} className="flex items-center justify-between">

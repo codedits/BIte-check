@@ -18,7 +18,7 @@ async function deleteReviewRequest(id: string): Promise<void> {
   }
 }
 
-async function editReviewRequest(payload: { id: string; rating?: number; comment?: string; images?: string[]; rating_breakdown?: any }): Promise<Review> {
+async function editReviewRequest(payload: { id: string; rating?: number; comment?: string; images?: string[]; rating_breakdown?: any; restaurantName?: string; restaurantLocation?: string }): Promise<Review> {
   const res = await fetch('/api/reviews', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
   const data = await res.json();
   if (!res.ok) {
@@ -53,11 +53,11 @@ export function useReviews(userId?: string) {
   });
 
   const editMutation = useMutation({
-    mutationFn: (payload: { id: string; rating?: number; comment?: string; images?: string[]; rating_breakdown?: any }) => editReviewRequest(payload),
+    mutationFn: (payload: { id: string; rating?: number; comment?: string; images?: string[]; rating_breakdown?: any; restaurantName?: string; restaurantLocation?: string }) => editReviewRequest(payload),
     onMutate: async (payload) => {
       await qc.cancelQueries({ queryKey });
       const prev = qc.getQueryData<Review[]>(queryKey) || [];
-      qc.setQueryData<Review[]>(queryKey, prev.map(r => r._id === payload.id ? { ...r, ...payload, rating_breakdown: payload.rating_breakdown ? payload.rating_breakdown : r.rating_breakdown } as any : r));
+      qc.setQueryData<Review[]>(queryKey, prev.map(r => r._id === payload.id ? { ...r, ...payload, restaurant: payload.restaurantName || r.restaurant, location: payload.restaurantLocation || (r as any).location, rating_breakdown: payload.rating_breakdown ? payload.rating_breakdown : r.rating_breakdown } as any : r));
       return { prev };
     },
     onError: (_err, _payload, ctx: { prev?: Review[] } | undefined) => {
@@ -79,6 +79,6 @@ export function useReviews(userId?: string) {
     refetch,
     addReview,
     deleteReview: (id: string) => deleteMutation.mutateAsync(id)
-  , editReview: (payload: { id: string; rating?: number; comment?: string; images?: string[]; rating_breakdown?: any }) => editMutation.mutateAsync(payload)
+  , editReview: (payload: { id: string; rating?: number; comment?: string; images?: string[]; rating_breakdown?: any; restaurantName?: string; restaurantLocation?: string }) => editMutation.mutateAsync(payload)
   };
 }

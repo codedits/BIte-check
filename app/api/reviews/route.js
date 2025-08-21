@@ -318,7 +318,7 @@ export async function PATCH(request) {
     }
 
     const body = await request.json();
-    const { id, rating, comment, images, rating_breakdown } = body || {};
+  const { id, rating, comment, images, rating_breakdown, restaurantName, restaurantLocation } = body || {};
     if (!id) {
       return NextResponse.json({ error: 'Review id required' }, { status: 400 });
     }
@@ -374,20 +374,49 @@ export async function PATCH(request) {
       };
     }
 
+    if (restaurantName && typeof restaurantName === 'string' && restaurantName.trim()) {
+      updates.restaurant = restaurantName.trim();
+    }
+    if (restaurantLocation && typeof restaurantLocation === 'string' && restaurantLocation.trim()) {
+      updates.location = restaurantLocation.trim();
+    }
+
     if (!Object.keys(updates).length) {
       return NextResponse.json({ error: 'No valid fields to update' }, { status: 400 });
     }
 
     await Review.updateOne({ _id: id }, { $set: updates });
 
-    // Recalculate restaurant rating if rating changed
+    // If restaurant name/location changed, upsert or update restaurant doc
+    if (updates.restaurant || updates.location) {
+      try {
+        // If name changed, migrate rating/metadata to new name if needed
+        if (updates.restaurant && updates.restaurant !== review.restaurant) {
+          const oldName = review.restaurant;
+          const newName = updates.restaurant;
+          const existingNew = await Restaurant.findOne({ name: newName });
+          if (!existingNew) {
+            // rename: update restaurant document name if exists
+            await Restaurant.findOneAndUpdate({ name: oldName }, { $set: { name: newName, ...(updates.location ? { location: updates.location } : {}) } });
+          } else if (updates.location) {
+            await Restaurant.findOneAndUpdate({ name: newName }, { $set: { location: updates.location } });
+          }
+        } else if (updates.location) {
+          await Restaurant.findOneAndUpdate({ name: review.restaurant }, { $set: { location: updates.location } });
+        }
+      } catch (e) {
+        console.warn('Restaurant name/location update failed', e?.message || e);
+      }
+    }
+
+    // Recalculate restaurant rating if rating changed (use new or old name)
     if (updates.rating !== undefined) {
-      const restaurantName = review.restaurant;
-      const restaurantReviews = await Review.find({ restaurant: restaurantName }).select('rating').lean();
+      const nameForRating = updates.restaurant || review.restaurant;
+      const restaurantReviews = await Review.find({ restaurant: nameForRating }).select('rating').lean();
       if (restaurantReviews.length) {
         const totalRating = restaurantReviews.reduce((sum, r) => sum + (r.rating || 0), 0);
         const avg = Math.round((totalRating / restaurantReviews.length) * 10) / 10;
-        await Restaurant.findOneAndUpdate({ name: restaurantName }, { rating: avg, totalReviews: restaurantReviews.length });
+        await Restaurant.findOneAndUpdate({ name: nameForRating }, { rating: avg, totalReviews: restaurantReviews.length });
       }
     }
 

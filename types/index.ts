@@ -3,6 +3,7 @@ export interface Review {
   userId: string;
   username: string;
   restaurant: string;
+  location?: string; // denormalized snapshot (may be absent)
   rating: number;
   comment: string;
   imageUrl?: string;
