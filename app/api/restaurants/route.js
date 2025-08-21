@@ -44,7 +44,7 @@ export async function GET(request) {
     }
 
     // Projection keeps payload small; adjust fields actually used by client cards
-    const projection = 'name cuisine location priceRange rating totalReviews image featured createdAt';
+  const projection = 'name cuisine location priceRange rating totalReviews image featured createdAt latitude longitude';
     // Attempt in-memory cache only for default list (no featured filter & no image population)
     const now = Date.now();
     if (!featuredOnly && populateImages !== 'true' && __restaurantsCache.data && (now - __restaurantsCache.ts) < LIST_CACHE_TTL_MS) {
@@ -127,7 +127,7 @@ export async function POST(request) {
       );
     }
 
-    const { name, cuisine, location, priceRange, description } = await request.json();
+  const { name, cuisine, location, priceRange, description, latitude, longitude } = await request.json();
 
     // Validation
     if (!name || !cuisine || !location || !priceRange) {
@@ -142,6 +142,23 @@ export async function POST(request) {
         { error: 'Restaurant name cannot be empty' },
         { status: 400 }
       );
+    }
+
+    // Optional lat/lng validation if provided
+    let lat = undefined, lng = undefined;
+    if (latitude !== undefined && latitude !== null && latitude !== '') {
+      const n = Number(latitude);
+      if (Number.isNaN(n) || n < -90 || n > 90) {
+        return NextResponse.json({ error: 'Latitude must be a number between -90 and 90' }, { status: 400 });
+      }
+      lat = n;
+    }
+    if (longitude !== undefined && longitude !== null && longitude !== '') {
+      const n = Number(longitude);
+      if (Number.isNaN(n) || n < -180 || n > 180) {
+        return NextResponse.json({ error: 'Longitude must be a number between -180 and 180' }, { status: 400 });
+      }
+      lng = n;
     }
 
     await connectDB();
@@ -164,7 +181,9 @@ export async function POST(request) {
       description: description ? description.trim() : '',
       addedBy: session.user.id,
       rating: 0,
-      totalReviews: 0
+      totalReviews: 0,
+      ...(lat !== undefined ? { latitude: lat } : {}),
+      ...(lng !== undefined ? { longitude: lng } : {})
     });
 
     await newRestaurant.save();

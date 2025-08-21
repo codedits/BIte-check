@@ -40,6 +40,8 @@ export interface Restaurant {
   imageThumb?: string; // smaller version for list/cards
   imageBlur?: string; // base64 blur placeholder
   featured?: boolean;
+  latitude?: number;
+  longitude?: number;
   addedBy: string;
   createdAt: string;
   updatedAt: string;

@@ -16,6 +16,8 @@ export default function AddRestaurantModal({ isOpen, onClose, onSuccess }: AddRe
   const [restaurantLocation, setRestaurantLocation] = useState('');
   const [priceRange, setPriceRange] = useState('');
   const [comment, setComment] = useState('');
+  // Single coordinates input, expects "lat, lng"
+  const [coords, setCoords] = useState<string>('');
   // category ratings
   const [taste, setTaste] = useState(0);
   const [presentation, setPresentation] = useState(0);
@@ -36,8 +38,8 @@ export default function AddRestaurantModal({ isOpen, onClose, onSuccess }: AddRe
       return;
     }
 
-    // Quick duplicate name check
-    try {
+  // Quick duplicate name check
+  try {
       const check = await fetch(`/api/restaurants?nameCheck=${encodeURIComponent(restaurantName.trim())}`);
       if (check.ok) {
         const json = await check.json();
@@ -51,6 +53,29 @@ export default function AddRestaurantModal({ isOpen, onClose, onSuccess }: AddRe
       }
     } catch (_) {
       // ignore silent failure; server will enforce anyway
+    }
+
+    // Parse coordinates if provided as "lat, lng"
+    let latNum: number | undefined;
+    let lngNum: number | undefined;
+    if (coords && coords.trim()) {
+      const parts = coords.split(',').map(s => s.trim()).filter(Boolean);
+      if (parts.length !== 2) {
+        setError('Enter coordinates as: latitude, longitude');
+        return;
+      }
+      const lat = Number(parts[0]);
+      const lng = Number(parts[1]);
+      if (Number.isNaN(lat) || lat < -90 || lat > 90) {
+        setError('Latitude must be a number between -90 and 90');
+        return;
+      }
+      if (Number.isNaN(lng) || lng < -180 || lng > 180) {
+        setError('Longitude must be a number between -180 and 180');
+        return;
+      }
+      latNum = lat;
+      lngNum = lng;
     }
 
     setLoading(true);
@@ -114,7 +139,9 @@ export default function AddRestaurantModal({ isOpen, onClose, onSuccess }: AddRe
           description: comment,
           image: imageUrl,
           imageThumb,
-          imageBlur
+          imageBlur,
+          latitude: typeof latNum === 'number' ? latNum : undefined,
+          longitude: typeof lngNum === 'number' ? lngNum : undefined
         }),
       });
 
@@ -153,6 +180,7 @@ export default function AddRestaurantModal({ isOpen, onClose, onSuccess }: AddRe
       setRestaurantLocation('');
       setPriceRange('');
   setComment('');
+      setCoords('');
   setTaste(0);
   setPresentation(0);
   setService(0);
@@ -276,8 +304,24 @@ export default function AddRestaurantModal({ isOpen, onClose, onSuccess }: AddRe
             />
           </div>
 
+          {/* Coordinates (optional): single input "lat, lng" */}
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">Category ratings *</label>
+            <label className="block text-sm font-medium text-gray-300 mb-2">Coordinates (optional)</label>
+            <input
+              type="text"
+              inputMode="numeric"
+              value={coords}
+              onChange={(e) => setCoords(e.target.value)}
+              className="glass-input w-full"
+              placeholder="e.g., 31.5161716667, 74.2607465113"
+            />
+            <p className="text-xs text-gray-400 mt-1">Format: latitude, longitude</p>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-2">
+              Category ratings *
+            </label>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
               {/* Taste */}
               <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4 py-1">

@@ -13,20 +13,48 @@ export default function ExplorePage() {
   const { restaurants, loading, error } = useRestaurants();
   const [filteredRestaurants, setFilteredRestaurants] = useState(restaurants ?? []);
   const [searchQuery, setSearchQuery] = useState('');
+  const [mode, setMode] = useState<'all' | 'nearest'>('all');
+  const [userCoords, setUserCoords] = useState<{ lat: number; lng: number } | null>(null);
+  const [isLocating, setIsLocating] = useState(false);
+  const [geoError, setGeoError] = useState<string | null>(null);
+
+  function haversineKm(lat1: number, lon1: number, lat2: number, lon2: number) {
+    const toRad = (d: number) => (d * Math.PI) / 180;
+    const R = 6371; // km
+    const dLat = toRad(lat2 - lat1);
+    const dLon = toRad(lon2 - lon1);
+    const a = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
+  }
 
   useEffect(() => {
-  let filtered = restaurants ?? [];
-
-    // Apply search filter only
+    // Default: filter by search
+    let base = restaurants ?? [];
     if (searchQuery) {
-      filtered = filtered.filter((restaurant: Restaurant) =>
+      base = base.filter((restaurant: Restaurant) =>
         (restaurant.name ?? '').toLowerCase().includes(searchQuery.toLowerCase()) ||
         (restaurant.description ?? '').toLowerCase().includes(searchQuery.toLowerCase())
       );
     }
 
-  setFilteredRestaurants(filtered);
-  }, [restaurants, searchQuery]);
+    if (mode === 'nearest' && userCoords && base.length) {
+      const withCoords = base.filter(r => typeof r.latitude === 'number' && typeof r.longitude === 'number');
+      if (withCoords.length) {
+        // Sort by distance and show the nearest one only
+        const sorted = withCoords
+          .map(r => ({ r, d: haversineKm(userCoords.lat, userCoords.lng, r.latitude as number, r.longitude as number) }))
+          .sort((a, b) => a.d - b.d)
+          .map(x => x.r);
+        setFilteredRestaurants([sorted[0]]);
+      } else {
+        // No coordinates available in data
+        setFilteredRestaurants([]);
+      }
+    } else {
+      setFilteredRestaurants(base);
+    }
+  }, [restaurants, searchQuery, mode, userCoords]);
 
   // Trigger refresh when the page becomes visible (user navigates back)
   useEffect(() => {
@@ -45,6 +73,32 @@ export default function ExplorePage() {
   };
 
   // No additional filters; only search is available
+  const handleFindNearby = () => {
+    setGeoError(null);
+    if (!('geolocation' in navigator)) {
+      setGeoError('Geolocation is not supported in this browser.');
+      return;
+    }
+    setIsLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setIsLocating(false);
+        const { latitude, longitude } = pos.coords;
+        setUserCoords({ lat: latitude, lng: longitude });
+        setMode('nearest');
+      },
+      (err) => {
+        setIsLocating(false);
+        setGeoError(err?.message || 'Unable to fetch location.');
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
+    );
+  };
+
+  const handleResetView = () => {
+    setMode('all');
+    setGeoError(null);
+  };
 
   return (
   <div className="min-h-screen pt-16 pb-8 px-3 sm:px-4 bg-black">
@@ -55,19 +109,48 @@ export default function ExplorePage() {
           <p className="text-xs sm:text-sm md:text-base text-gray-300 max-w-2xl md:max-w-3xl mx-auto px-1">Find places to eat using a simple search — minimal UI, fast results.</p>
         </motion.div>
 
-        {/* Search */}
+        {/* Search + Nearest */}
         {/* Compact Search */}
         <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.08 }} className="mb-5 sm:mb-6">
-          <div className="relative max-w-xl sm:max-w-2xl md:max-w-3xl mx-auto">
-            <input
-              type="text"
-              aria-label="Search restaurants"
-              className="w-full px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg bg-black/60 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-orange-500 text-sm sm:text-base"
-              placeholder="Search restaurants"
-              value={searchQuery}
-              onChange={e => setSearchQuery(e.target.value)}
-            />
-            <FaSearch className="absolute right-3 top-1/2 -translate-y-1/2 text-orange-400 text-sm pointer-events-none" />
+          <div className="relative max-w-xl sm:max-w-2xl md:max-w-3xl mx-auto flex flex-col gap-3">
+            <div className="relative">
+              <input
+                type="text"
+                aria-label="Search restaurants"
+                className="w-full px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg bg-black/60 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-orange-500 text-sm sm:text-base"
+                placeholder="Search restaurants"
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+              />
+              <FaSearch className="absolute right-3 top-1/2 -translate-y-1/2 text-orange-400 text-sm pointer-events-none" />
+            </div>
+            <div className="flex items-center justify-center gap-3">
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={handleFindNearby}
+                disabled={isLocating}
+                className="inline-flex items-center justify-center rounded-md border border-white/20 bg-transparent text-white/90 hover:bg-white/10 px-3 sm:px-3.5 py-1.5 text-xs sm:text-sm font-medium disabled:opacity-50"
+              >
+                {isLocating ? 'Locating…' : 'Find restaurants near me'}
+              </motion.button>
+              {mode === 'nearest' && (
+                <motion.button
+                  whileHover={{ scale: 1.04 }}
+                  whileTap={{ scale: 0.96 }}
+                  onClick={handleResetView}
+                  className="glass-button bg-black/60 text-white hover:bg-black/50 font-semibold px-4 sm:px-5 py-2 text-sm sm:text-base"
+                >
+                  Show all
+                </motion.button>
+              )}
+            </div>
+            {geoError && (
+              <div className="text-center text-red-400 text-xs sm:text-sm">{geoError}</div>
+            )}
+            {mode === 'nearest' && userCoords && (
+              <div className="text-center text-gray-400 text-xs sm:text-sm">Showing the nearest restaurant to your location.</div>
+            )}
           </div>
         </motion.div>
       {/* Loading Skeletons */}
@@ -118,8 +201,8 @@ export default function ExplorePage() {
 
       
 
-      {/* Restaurant Grid */}
-      {!loading && !error && filteredRestaurants.length > 0 ? (
+  {/* Restaurant Grid */}
+  {!loading && !error && filteredRestaurants.length > 0 ? (
         <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-5 md:gap-6">
           {filteredRestaurants.map((restaurant: Restaurant, index) => (
             <motion.div
@@ -145,10 +228,10 @@ export default function ExplorePage() {
         >
           <div className="text-gray-400 text-xl sm:text-2xl mb-3 sm:mb-4">No restaurants found</div>
           <div className="text-gray-500 text-sm sm:text-base lg:text-lg mb-4 sm:mb-6">
-            {(restaurants ?? []).length === 0 ? (
+    {(restaurants ?? []).length === 0 ? (
               "No restaurants have been added yet. Be the first to add a restaurant!"
             ) : (
-              "Try adjusting your search terms or filters"
+      mode === 'nearest' ? "Couldn't find any restaurants with coordinates yet. Try 'Show all' or add coordinates when adding a restaurant." : "Try adjusting your search terms or filters"
             )}
           </div>
             {(restaurants ?? []).length === 0 && (
