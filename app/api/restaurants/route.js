@@ -19,6 +19,12 @@ export async function GET(request) {
   const id = searchParams.get('id');
   const featuredOnly = searchParams.get('featured');
   const populateImages = searchParams.get('populateImages');
+  const nameCheck = searchParams.get('nameCheck');
+
+    if (nameCheck) {
+      const existing = await Restaurant.findOne({ name: { $regex: new RegExp(`^${nameCheck.trim()}$`, 'i') } }).select('_id').lean();
+      return NextResponse.json({ exists: !!existing });
+    }
 
     if (id) {
       // Return single restaurant by id
@@ -140,15 +146,11 @@ export async function POST(request) {
 
     await connectDB();
 
-    // Check if restaurant already exists
-    const existingRestaurant = await Restaurant.findOne({ 
-      name: { $regex: new RegExp(`^${name.trim()}$`, 'i') },
-      location: { $regex: new RegExp(`^${location.trim()}$`, 'i') }
-    });
-
-    if (existingRestaurant) {
+    // Check if restaurant name already exists anywhere (case-insensitive)
+    const existingByName = await Restaurant.findOne({ name: { $regex: new RegExp(`^${name.trim()}$`, 'i') } }).select('_id').lean();
+    if (existingByName) {
       return NextResponse.json(
-        { error: 'A restaurant with this name already exists in this location' },
+        { error: 'A restaurant with this name already exists. Please choose a different name.' },
         { status: 400 }
       );
     }

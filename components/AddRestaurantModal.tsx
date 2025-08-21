@@ -26,6 +26,7 @@ export default function AddRestaurantModal({ isOpen, onClose, onSuccess }: AddRe
   const [error, setError] = useState('');
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [nameConflict, setNameConflict] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -33,6 +34,23 @@ export default function AddRestaurantModal({ isOpen, onClose, onSuccess }: AddRe
   if (!restaurantName || !cuisine || !restaurantLocation || !priceRange || !comment || !allCategoriesRated({ taste, presentation, service, ambiance, value })) {
       setError('Please fill in all fields and rate all categories');
       return;
+    }
+
+    // Quick duplicate name check
+    try {
+      const check = await fetch(`/api/restaurants?nameCheck=${encodeURIComponent(restaurantName.trim())}`);
+      if (check.ok) {
+        const json = await check.json();
+        if (json.exists) {
+          setNameConflict(true);
+          setError('Restaurant name already exists. Please choose another name.');
+          return;
+        } else {
+          setNameConflict(false);
+        }
+      }
+    } catch (_) {
+      // ignore silent failure; server will enforce anyway
     }
 
     setLoading(true);
@@ -130,7 +148,7 @@ export default function AddRestaurantModal({ isOpen, onClose, onSuccess }: AddRe
       }
 
   // Reset form and close modal
-      setRestaurantName('');
+  setRestaurantName('');
       setCuisine('');
       setRestaurantLocation('');
       setPriceRange('');
@@ -198,6 +216,7 @@ export default function AddRestaurantModal({ isOpen, onClose, onSuccess }: AddRe
               placeholder="Enter restaurant name"
               required
             />
+              {nameConflict && <p className="text-xs text-red-400 mt-1">Name already exists. Pick a unique name.</p>}
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
