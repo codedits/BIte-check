@@ -27,141 +27,229 @@ A modern, beautiful restaurant rating and review platform built with Next.js, Ta
 
 - **Glass Morphism**: Beautiful translucent containers with backdrop blur
 - **Dark Theme**: Elegant dark color scheme with accent colors
-- **Smooth Animations**: Fade-in, slide-up, and hover effects
-- **Modern Typography**: Clean, readable fonts with proper hierarchy
-- **Responsive Layout**: Mobile-first design with bottom navigation
+# 🍽️ Bite Check - Restaurant Rating App
 
-## 📱 Pages & Components
+A modern restaurant rating and review platform built with Next.js (App Router), TailwindCSS, Framer Motion and MongoDB.
 
-### Pages
-- **Home**: Hero section, search, featured restaurants
-- **Explore**: Advanced filtering and restaurant browsing
-- **Restaurant Detail**: Full restaurant info, reviews, add review
-- **Profile**: User profile and review history
+This README focuses on the backend logic (models, APIs, auth and image upload flow) and the main frontend structure and components used to interact with the backend.
 
-### Components
-- **Navbar**: Top navigation with glass effects
-- **BottomNav**: Mobile-friendly bottom navigation
-- **SimpleRestaurantCard**: Primary lightweight restaurant card (image, name, rating, subtitle)
-- **SearchBar**: Interactive search with glass styling
-- **StarRating**: Interactive star rating component
-- **ReviewList**: Display restaurant reviews (with lightbox)
-- **AddReviewModal / EditReviewModal**: Create & edit reviews
+## Table of contents
+- Overview
+- Architecture
+- Backend: Models & Schemas
+- Backend: Key API endpoints
+- Authentication
+- Image upload flow (Cloudinary)
+- Frontend structure & important components
+- Environment variables
+- Local development & testing
+- Notes & next steps
 
-## 🛠️ Installation & Setup
+## Overview
 
-1. **Clone the repository**
-   ```bash
-   git clone <repository-url>
-   cd bitecheck
-   ```
+The app stores restaurants and user reviews in MongoDB via Mongoose models. Reviews may include multiple images (stored as arrays of image URLs). A Cloudinary-backed upload endpoint is used to store images and return a hosted `secure_url` which is saved on each `Review` document.
 
-2. **Install dependencies**
-   ```bash
-   npm install
-   ```
+## Architecture
 
-3. **Set up environment variables**
-   Create a `.env.local` file with:
-   ```bash
-   MONGODB_URI=mongodb+srv://bitecheck123:bitecheck1234@cluster0.wnvoemk.mongodb.net/bitecheck?retryWrites=true&w=majority&appName=Cluster0
-   NEXTAUTH_SECRET=your-super-secret-key-here-change-in-production
-   NEXTAUTH_URL=http://localhost:3000
-   ```
+- Next.js app (app directory, React client components)
+- API routes implemented under `app/api/*` (server runtime)
+- Mongoose models under `models/`
+- Authentication using NextAuth (Credentials provider) with JWT strategy
+- Image uploads handled by a server-side Cloudinary uploader at `/api/review-upload`
 
-4. **Run the development server**
-   ```bash
-   npm run dev
-   ```
+## Backend: Models & Schemas
 
-5. **Open your browser**
-   Navigate to [http://localhost:3000](http://localhost:3000)
+The following Mongoose models exist (fields trimmed to essentials):
 
-## 🎯 Key Features
+- `models/Review.js` (Review)
+  - userId: ObjectId (ref 'User') — required
+  - username: String — required
+  - restaurant: String — required
+  - rating: Number (1-5) — required
+  - comment: String (trimmed, max 500) — required
+  - images: [String] — array of image URLs (default: [])
+  - rating_breakdown: { taste, presentation, service, ambiance, value } — optional per-category scores (1-5)
+  - timestamps: createdAt, updatedAt
+  - Indexes: { userId, createdAt }, { restaurant, createdAt }, { createdAt }, and a compound index including `images.0` to speed image-based lookups
 
-### Glass Effects
-- Custom CSS utilities for glass morphism
-- Backdrop blur and transparency effects
-- Smooth hover animations and transitions
+- `models/Restaurant.js` (Restaurant)
+  - name: String — required
+  - cuisine: String — required
+  - location: String — required
+  - priceRange: String — one of ['$', '$$', '$$$', '$$$$']
+  - description: String
+  - addedBy: ObjectId (ref 'User') — required
+  - rating: Number (avg rating)
+  - totalReviews: Number
+  - image: String (main image URL)
+  - imageThumb: String (thumbnail)
+  - imageBlur: String (base64 tiny image for blur placeholder)
+  - featured: Boolean
+  - timestamps and several performance indexes (unique name+location, featured, rating sorting, full-text index for search)
 
-### Responsive Design
-- Mobile-first approach
-- Bottom navigation for mobile devices
-- Responsive grid layouts
-- Touch-friendly interactions
+- `models/User.js` (User)
+  - email: String — required, unique index
+  - password: String — hashed (bcrypt)
+  - timestamps
 
-### Animation System
-- Framer Motion integration
-- Staggered animations for lists
-- Smooth page transitions
-- Interactive hover effects
+Notes:
+- Reviews hold the authoritative image URLs for review photos (an array of strings). Images are uploaded to Cloudinary and the returned `secure_url` is stored in `Review.images`.
 
-### Search & Filtering
-- Real-time search functionality
-- Filter by cuisine, location, and price
-- Dynamic results updating
-- Clear filter options
+## Backend: Key API endpoints
 
-### Backend & Authentication
-- MongoDB Atlas database integration
-- User registration and login with NextAuth.js
-- Secure password hashing with bcrypt
-- Protected API routes for review submission
-- JWT-based session management
-- User-specific review tracking
+All API code lives under `app/api/*`.
 
-## 🎨 Custom CSS Classes
+1) `POST /api/review-upload`
+   - Purpose: Upload a single image to Cloudinary and return a hosted URL.
+   - Request: JSON body { file: string } where `file` is a Data URL (e.g. `data:image/jpeg;base64,...`) or a remote http(s) URL.
+   - Response: 200 { secure_url: string } or error 4xx/5xx.
+   - Notes: Uses Cloudinary SDK server-side. The endpoint verifies Cloudinary config and returns helpful diagnostic info on errors.
 
-The app includes custom CSS utilities for consistent glass effects:
+2) `GET /api/reviews`
+   - Query params: `userId`, `restaurant` (optional filters)
+   - Response: JSON array of reviews (sorted by createdAt desc). Each review may include `images` array.
 
-```css
-.glass          /* Basic glass container */
-.glass-card     /* Glass card with hover effects */
-.glass-button   /* Glass button with interactions */
-.glass-input    /* Glass input fields */
-.glass-modal    /* Glass modal containers */
-.text-gradient  /* Gradient text effect */
+3) `POST /api/reviews` (auth required)
+   - Body: { restaurant, rating, comment, images?: string[], rating_breakdown?: {...} }
+   - Behavior: Validates input, creates a new Review (user taken from session), saves images array (if provided), increments/updates Restaurant rating and totalReviews (creates or updates restaurant record as needed), and returns the created review.
+   - Response: 201 { message, review }
+
+4) `PATCH /api/reviews` (auth required)
+   - Body: { id, rating?, comment?, images?, rating_breakdown?, restaurantName?, restaurantLocation? }
+   - Behavior: Verifies ownership, updates review fields. For images, the API accepts a complete array and replaces the review's images with the provided array (server-side limits to 6). If restaurant name/location change, it attempts to update/migrate restaurant metadata.
+
+5) `DELETE /api/reviews?id=<id>` (auth required)
+   - Behavior: Verifies ownership, attempts to delete Cloudinary resources for the review (if Cloudinary config present), deletes the review, and recalculates or deletes the associated restaurant record depending on remaining reviews.
+
+Error handling: API routes return JSON error messages and appropriate HTTP status codes. Authentication is enforced via NextAuth server session checks for modifying routes.
+
+## Authentication
+
+- Implemented in `lib/auth.js` using NextAuth with multiple providers:
+  - **Credentials Provider**: Email & password authentication with bcrypt hashing
+  - **Google OAuth 2.0**: Sign in with Google account
+- Both providers connect to MongoDB and create/update user records
+- Session strategy: JWT (`session.strategy = 'jwt'`) with callbacks adding `user.id`, `user.username`, and `provider` into the token/session
+- Pages: `signIn` and `signUp` configured under `/auth/*` routes with support for both credential and Google OAuth flows
+- Google OAuth users are automatically created in the database on first sign-in
+
+## Image upload flow (Cloudinary)
+
+1. Client selects files and the client code (e.g. `AddReviewModal`, `EditReviewModal`) reads each file as a Data URL using FileReader.
+2. For each file the client calls `POST /api/review-upload` with body `{ file: dataUrl }`.
+3. The API uploads to Cloudinary using the server SDK; the endpoint returns `{ secure_url }`.
+4. Client collects the returned secure URLs and sends them as part of the review payload to `POST /api/reviews` or `PATCH /api/reviews`.
+
+Server-side deletion: When a review is deleted, the `DELETE /api/reviews` handler tries to extract Cloudinary `public_id` from stored image URLs and call Cloudinary API to remove those resources (if Cloudinary credentials are present).
+
+## Frontend structure & important components
+
+Key files and components (high level):
+
+- `app/` — Next.js app router pages and API routes. Notable pages:
+  - `app/explore/page.tsx` — Explore restaurants listing
+  - `app/restaurant/[id]/page.tsx` — Restaurant detail and reviews
+
+- `components/`
+  - `SimpleRestaurantCard.tsx` — Card used in explore grids
+  - `AddReviewModal.tsx` — Modal with category ratings, comment, image preview + upload flow
+  - `EditReviewModal.tsx` — Edit modal that shows existing review images, allows marking them for removal, and adding new images (uploads to `/api/review-upload` before saving)
+  - `ImageCarousel.tsx` — Reusable carousel + lightbox used for review galleries and restaurant images
+  - `CloudImage.tsx` — Lightweight wrapper / optimized image helper used throughout (abstracts image rendering)
+  - `ReviewList.tsx` / `ReviewDetailModal.tsx` — Use the carousel to display review images
+
+Integration notes:
+- `AddReviewModal` and `EditReviewModal` create client-side previews using `URL.createObjectURL` and revoke them on close.
+- Both modals upload selected images to `/api/review-upload` (data URL) and only store returned `secure_url` values in the review document.
+- `ImageCarousel` provides thumbnails, next/prev controls, and a fullscreen lightbox.
+
+## Environment variables
+
+Provide these in `.env.local` (example names used in code):
+
+- `MONGODB_URI` — MongoDB connection string (required)
+- `NEXTAUTH_SECRET` — NextAuth secret for JWT signing (recommended)
+- `NEXTAUTH_URL` — App base URL (e.g. http://localhost:3000) (recommended)
+
+Google OAuth 2.0 (required for "Sign in with Google"):
+- `GOOGLE_CLIENT_ID` — Your Google OAuth 2.0 Client ID
+- `GOOGLE_CLIENT_SECRET` — Your Google OAuth 2.0 Client Secret
+
+Cloudinary (one of the following sets must be present for uploads to work):
+- `CLOUDINARY_URL` — Optional full connection URL
+OR
+- `CLOUDINARY_CLOUD_NAME`
+- `CLOUDINARY_API_KEY`
+- `CLOUDINARY_API_SECRET`
+
+Optional tuning vars used in `lib/mongodb.js`:
+- `MONGO_SERVER_SELECTION_TIMEOUT_MS`, `MONGO_SOCKET_TIMEOUT_MS`, `MONGO_MAX_POOL_SIZE`, `MONGO_MIN_POOL_SIZE`, `MONGO_HEARTBEAT_MS`, `MONGODB_DIRECT_FALLBACK`
+
+## Local development & testing
+
+1) Install dependencies
+
+```powershell
+npm install
 ```
 
-## 📱 Mobile Experience
+2) Add `.env.local` with at least the required variables above. Example minimal `.env.local` for local testing (replace placeholders):
 
-- Sticky bottom navigation
-- Touch-optimized interactions
-- Responsive card layouts
-- Mobile-friendly modals
+```text
+MONGODB_URI=mongodb+srv://<user>:<pass>@cluster0.example.mongodb.net/bitecheck
+NEXTAUTH_SECRET=some-long-secret
+NEXTAUTH_URL=http://localhost:3000
+# Google OAuth 2.0
+GOOGLE_CLIENT_ID=your-google-client-id.apps.googleusercontent.com
+GOOGLE_CLIENT_SECRET=your-google-client-secret
+# Cloudinary example (pick either CLOUDINARY_URL or the explicit keys)
+CLOUDINARY_URL=cloudinary://<api_key>:<api_secret>@<cloud_name>
+```
 
-## 🔮 Future Enhancements
+### How to get Google OAuth 2.0 credentials:
 
-- User authentication system
-- Backend API integration
-- Real-time reviews
-- Restaurant photos and galleries
-- Advanced filtering options
-- Social features and sharing
+1. Go to [Google Cloud Console](https://console.cloud.google.com/)
+2. Create a new project or select an existing one
+3. Navigate to "APIs & Services" → "Credentials"
+4. Click "Create Credentials" → "OAuth 2.0 Client ID"
+5. Configure the OAuth consent screen if prompted
+6. Choose "Web application" as the application type
+7. Add authorized redirect URIs:
+   - For local development: `http://localhost:3000/api/auth/callback/google`
+   - For production: `https://yourdomain.com/api/auth/callback/google`
+8. Copy the Client ID and Client Secret to your `.env.local` file
 
-## 🎨 Color Scheme
+3) Run dev server
 
-- **Primary**: Green tones (#22c55e)
-- **Accent**: Orange tones (#f97316)
-- **Dark**: Dark grays (#0f172a)
-- **Glass**: White with transparency
+```powershell
+npm run dev
+```
 
-## 📄 License
+4) Test upload endpoint (optional quick check)
 
-This project is open source and available under the [MIT License](LICENSE).
+Use a client or curl to POST a small data URL to `/api/review-upload`. The app includes a debug GET on that endpoint that returns whether Cloudinary credentials are visible to the running process.
 
-## 🤝 Contributing
+Example (browser / fetch) for manual test:
 
-Contributions are welcome! Please feel free to submit a Pull Request.
+```js
+const dataUrl = 'data:image/png;base64,iVBORw0K...';
+const res = await fetch('/api/review-upload', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ file: dataUrl }) });
+const json = await res.json();
+console.log(json);
+```
+
+5) Add a review with images via the UI (Explore → Restaurant → Add Review) — images will be uploaded to Cloudinary then stored on the review document.
+
+## Notes & next steps
+
+- The code includes defensive indexing and connection tuning in `lib/mongodb.js` for more stable connections in constrained environments.
+- The `reviews` API attempts to clean up Cloudinary resources when deleting reviews. However, Cloudinary deletion relies on parsing `public_id` from stored URLs — edge cases may need improving.
+- Consider adding server-side validation for max images per review and rate-limiting for the upload endpoint.
+- If you want, I can:
+  - Add an OpenAPI/Swagger summary for the API routes
+  - Add unit tests for API behavior (happy path + auth checks)
+  - Add a short troubleshooting section for common Cloudinary and MongoDB errors
 
 ---
 
-Built with ❤️ using Next.js, TailwindCSS, and Framer Motion
-
-## 🧪 Performance & Indexes
-
-MongoDB indexes configured for fast query paths:
-- Restaurants: unique `{ name, location }`; compound `{ featured, rating, totalReviews }`; `{ rating, totalReviews }`; `{ createdAt }`; `{ featured, createdAt }`; partial `no_image_recent` (docs missing `image`); full‑text index on `name,cuisine,location,description`.
-- Reviews: `{ userId, createdAt }`; `{ restaurant, createdAt }`; `{ createdAt }`; compound `{ restaurant, images.0, createdAt }` (accelerates image fallback lookups when populating missing restaurant images).
-
-Indexes are created automatically on first model use (Mongoose). For fresh deployments you can trigger builds by hitting any API route. Monitor build progress in MongoDB Atlas (large collections may take time).
+If you want any section expanded (examples, diagrams, or an OpenAPI spec), tell me which part and I will add it.

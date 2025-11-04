@@ -1,15 +1,13 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { motion } from "framer-motion";
 import { FaArrowLeft, FaMapMarkerAlt, FaUtensils, FaStar, FaPlus, FaChevronDown } from "react-icons/fa";
 import CloudImage from '@/components/CloudImage';
-import PageSkeleton from '@/components/PageSkeleton';
 import AddReviewModal from "@/components/AddReviewModal";
 import ReviewList from "@/components/ReviewList";
 import { useAuth } from "@/contexts/AuthContext";
-import { Restaurant, Review } from '@/types';
 import { useRestaurant } from '@/hooks/useRestaurant';
 import { useRestaurantReviews } from '@/hooks/useRestaurantReviews';
 
@@ -75,7 +73,14 @@ export default function RestaurantDetailPage() {
   };
 
   if (loading) {
-    return <PageSkeleton variant="restaurant" />;
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-black">
+        <div className="text-center">
+          <div className="mb-4 h-12 w-12 animate-spin rounded-full border-4 border-white/10 border-t-white mx-auto"></div>
+          <p className="text-sm text-white/60">Loading restaurant...</p>
+        </div>
+      </div>
+    );
   }
 
   if (error) {

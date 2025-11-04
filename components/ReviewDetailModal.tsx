@@ -3,7 +3,7 @@
 import React, { useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FaTimes, FaMapMarkerAlt } from 'react-icons/fa';
-import CloudImage from '@/components/CloudImage';
+import ImageCarousel from '@/components/ImageCarousel';
 import StarRating from './StarRating';
 import { Review } from '@/types';
 import { useAuth } from '@/contexts/AuthContext';
@@ -13,11 +13,10 @@ interface ReviewDetailModalProps {
   isOpen: boolean;
   onClose: () => void;
   review: Review | null;
-  onOpenLightbox?: (images: string[], index: number) => void;
   onDelete?: (id: string) => Promise<void> | void;
 }
 
-export default function ReviewDetailModal({ isOpen, onClose, review, onOpenLightbox, onDelete }: ReviewDetailModalProps) {
+export default function ReviewDetailModal({ isOpen, onClose, review, onDelete }: ReviewDetailModalProps) {
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
@@ -100,28 +99,10 @@ export default function ReviewDetailModal({ isOpen, onClose, review, onOpenLight
               </div>
             </div>
 
-            {/* images gallery */}
+            {/* Images Gallery with Carousel */}
             {images.length > 0 && (
-              <div className="px-4 pb-3">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {images.map((img, i) => {
-                    const src = normalizeImageSrc(img);
-                    if (!src) return null;
-                    return (
-                      <button
-                        key={`${src}-${i}`}
-                        onClick={() => onOpenLightbox && onOpenLightbox(images, i)}
-                        className="relative overflow-hidden rounded-lg aspect-[16/9] bg-black/20 focus:outline-none focus:ring-2 focus:ring-orange-500"
-                        aria-label={`Open image ${i + 1}`}
-                      >
-                        <CloudImage src={src} alt={`Review image ${i + 1}`} width={1200} height={675} fillCrop className="object-cover w-full h-full" />
-                        {i === images.length - 1 && images.length > 4 && (
-                          <div className="absolute inset-0 bg-black/50 flex items-center justify-center text-white font-semibold">+{images.length - 4}</div>
-                        )}
-                      </button>
-                    );
-                  })}
-                </div>
+              <div className="px-4 pb-4">
+                <ImageCarousel images={images} />
               </div>
             )}
 

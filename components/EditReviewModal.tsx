@@ -27,6 +27,8 @@ export default function EditReviewModal({ isOpen, onClose, review, onSubmit }: E
 		restaurantLocation: ''
 	});
 	const [files, setFiles] = useState<File[]>([]);
+	const [previewUrls, setPreviewUrls] = useState<string[]>([]);
+	const [imagesToRemove, setImagesToRemove] = useState<string[]>([]);
 	const [uploading, setUploading] = useState(false);
 	const [error, setError] = useState('');
 
@@ -42,8 +44,34 @@ export default function EditReviewModal({ isOpen, onClose, review, onSubmit }: E
 				restaurantName: review.restaurant || '',
 				restaurantLocation: (review as any).location || ''
 			});
+			setImagesToRemove([]);
 		}
 	}, [review]);
+
+	const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+		const list = e.target.files ? Array.from(e.target.files) : [];
+		const selected = list.slice(0, 3);
+		setFiles(selected);
+		
+		// Create preview URLs
+		const urls = selected.map(file => URL.createObjectURL(file));
+		setPreviewUrls(urls);
+	};
+
+	const handleRemoveExistingImage = (img: string) => {
+		setImagesToRemove(prev => [...prev, img]);
+	};
+
+	const handleRemoveNewImage = (index: number) => {
+		const newFiles = files.filter((_, i) => i !== index);
+		const newPreviews = previewUrls.filter((_, i) => i !== index);
+		
+		// Revoke the removed URL to free memory
+		URL.revokeObjectURL(previewUrls[index]);
+		
+		setFiles(newFiles);
+		setPreviewUrls(newPreviews);
+	};
 
 	const overallValue = useMemo(() => computeWeightedRating(formData as any), [formData]);
 
@@ -59,7 +87,11 @@ export default function EditReviewModal({ isOpen, onClose, review, onSubmit }: E
 			setError('Rate at least one category');
 			return;
 		}
-		const newImages: string[] = (review.images || []).slice();
+		
+		// Start with existing images, remove ones marked for deletion
+		const existingImages = (review.images || []).filter(img => !imagesToRemove.includes(img));
+		const newImages: string[] = [...existingImages];
+		
 		try {
 			if (files.length) {
 				setUploading(true);
@@ -95,6 +127,11 @@ export default function EditReviewModal({ isOpen, onClose, review, onSubmit }: E
 
 	const handleClose = () => {
 		setError('');
+		setFiles([]);
+		// Clean up preview URLs
+		previewUrls.forEach(url => URL.revokeObjectURL(url));
+		setPreviewUrls([]);
+		setImagesToRemove([]);
 		onClose();
 	};
 
@@ -204,20 +241,74 @@ export default function EditReviewModal({ isOpen, onClose, review, onSubmit }: E
 							{review.images && review.images.length > 0 && (
 								<div>
 									<label className="mb-3 block text-xs uppercase tracking-wider text-white/50">
-										Current Photos ({review.images.length})
+										Current Photos ({review.images.filter(img => !imagesToRemove.includes(img)).length})
 									</label>
 									<div className="grid grid-cols-3 gap-3">
-										{review.images.map((img, idx) => (
-											<div key={idx} className="group relative aspect-square overflow-hidden rounded-xl border border-white/10">
-												<CloudImage
-													src={img}
-													alt={`Review photo ${idx + 1}`}
-													width={200}
-													height={200}
-													fillCrop
-													className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-110"
+										{review.images.map((img, idx) => {
+											const isMarkedForRemoval = imagesToRemove.includes(img);
+											return (
+												<div 
+													key={idx} 
+													className={`group relative aspect-square overflow-hidden rounded-xl border ${
+														isMarkedForRemoval 
+															? 'border-red-500/50 opacity-40' 
+															: 'border-white/10'
+													}`}
+												>
+													<CloudImage
+														src={img}
+														alt={`Review photo ${idx + 1}`}
+														width={200}
+														height={200}
+														fillCrop
+														className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-110"
+													/>
+													<div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 transition-opacity group-hover:opacity-100" />
+													{!isMarkedForRemoval ? (
+														<button
+															type="button"
+															onClick={() => handleRemoveExistingImage(img)}
+															className="absolute right-2 top-2 rounded-full bg-red-500 p-1.5 text-white opacity-0 transition hover:bg-red-600 group-hover:opacity-100"
+															aria-label="Remove image"
+														>
+															<FaTimes className="text-xs" />
+														</button>
+													) : (
+														<div className="absolute inset-0 flex items-center justify-center">
+															<span className="rounded-full bg-red-500 px-3 py-1 text-xs font-semibold text-white">
+																Will be removed
+															</span>
+														</div>
+													)}
+												</div>
+											);
+										})}
+									</div>
+								</div>
+							)}
+
+							{/* New Photos Preview */}
+							{previewUrls.length > 0 && (
+								<div>
+									<label className="mb-3 block text-xs uppercase tracking-wider text-white/50">
+										New Photos ({previewUrls.length})
+									</label>
+									<div className="grid grid-cols-3 gap-3">
+										{previewUrls.map((url, idx) => (
+											<div key={idx} className="group relative aspect-square overflow-hidden rounded-xl border border-green-500/50">
+												<img
+													src={url}
+													alt={`New preview ${idx + 1}`}
+													className="h-full w-full object-cover"
 												/>
-												<div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 transition-opacity group-hover:opacity-100" />
+												<button
+													type="button"
+													onClick={() => handleRemoveNewImage(idx)}
+													className="absolute right-2 top-2 rounded-full bg-red-500 p-1.5 text-white opacity-0 transition hover:bg-red-600 group-hover:opacity-100"
+													aria-label="Remove new image"
+												>
+													<FaTimes className="text-xs" />
+												</button>
 											</div>
 										))}
 									</div>
@@ -233,14 +324,10 @@ export default function EditReviewModal({ isOpen, onClose, review, onSubmit }: E
 									type="file" 
 									multiple 
 									accept="image/*" 
-									onChange={(e) => setFiles(e.target.files ? Array.from(e.target.files).slice(0, 3) : [])} 
+									onChange={handleFileChange} 
 									className="w-full cursor-pointer rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white/80 transition file:mr-4 file:cursor-pointer file:rounded-lg file:border-0 file:bg-white/10 file:px-4 file:py-2 file:text-sm file:font-medium file:text-white file:transition hover:file:bg-white/20" 
 								/>
-								{files.length > 0 && (
-									<div className="mt-2 text-xs text-white/60">
-										Adding {files.length} new {files.length === 1 ? 'photo' : 'photos'}
-									</div>
-								)}
+								<p className="mt-1 text-xs text-white/40">Select up to 3 additional images. Click X to remove.</p>
 								{uploading && (
 									<div className="mt-2 flex items-center gap-2 text-xs text-white/60">
 										<div className="h-3 w-3 animate-spin rounded-full border-2 border-white/20 border-t-white" />

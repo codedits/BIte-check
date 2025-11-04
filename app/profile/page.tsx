@@ -7,7 +7,6 @@ import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import AddRestaurantModal from '@/components/AddRestaurantModal';
 import EditReviewModal from '@/components/EditReviewModal';
-import PageSkeleton from '@/components/PageSkeleton';
 import { Review } from '@/types';
 
 export default function ProfilePage() {
@@ -21,7 +20,14 @@ export default function ProfilePage() {
   const { reviews: userReviews = [], loading: reviewsLoading, deleteReview, editReview } = useReviews(user?.id);
 
   if (loading) {
-    return <PageSkeleton variant="profile" />;
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-black">
+        <div className="text-center">
+          <div className="mb-4 h-12 w-12 animate-spin rounded-full border-4 border-white/10 border-t-white mx-auto"></div>
+          <p className="text-sm text-white/60">Loading profile...</p>
+        </div>
+      </div>
+    );
   }
 
   if (!isAuthenticated) {

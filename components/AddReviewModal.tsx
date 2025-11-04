@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { FaTimes } from 'react-icons/fa';
 import StarRating from './StarRating';
 import { useAuth } from '@/contexts/AuthContext';
-import { computeWeightedRating, allCategoriesRated } from '@/lib/ratings';
+import { computeWeightedRating } from '@/lib/ratings';
 
 interface AddReviewModalProps {
   isOpen: boolean;
@@ -31,6 +31,7 @@ export default function AddReviewModal({
   comment: ''
   });
   const [files, setFiles] = useState<File[]>([]);
+  const [previewUrls, setPreviewUrls] = useState<string[]>([]);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
   // Removed size restriction
@@ -46,6 +47,27 @@ export default function AddReviewModal({
     });
     return missing;
   }, [formData]);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const list = e.target.files ? Array.from(e.target.files) : [];
+    const selected = list.slice(0, 3);
+    setFiles(selected);
+    
+    // Create preview URLs
+    const urls = selected.map(file => URL.createObjectURL(file));
+    setPreviewUrls(urls);
+  };
+
+  const handleRemoveImage = (index: number) => {
+    const newFiles = files.filter((_, i) => i !== index);
+    const newPreviews = previewUrls.filter((_, i) => i !== index);
+    
+    // Revoke the removed URL to free memory
+    URL.revokeObjectURL(previewUrls[index]);
+    
+    setFiles(newFiles);
+    setPreviewUrls(newPreviews);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -124,6 +146,10 @@ export default function AddReviewModal({
 
   const handleClose = () => {
   setFormData({ username: '', taste: 0, presentation: 0, service: 0, ambiance: 0, value: 0, comment: '' });
+    setFiles([]);
+    // Clean up preview URLs
+    previewUrls.forEach(url => URL.revokeObjectURL(url));
+    setPreviewUrls([]);
     setError('');
     onClose();
   };
@@ -256,20 +282,38 @@ export default function AddReviewModal({
               {/* Image Upload */}
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">Photos (optional, up to 3)</label>
+                
+                {/* Preview existing selected images */}
+                {previewUrls.length > 0 && (
+                  <div className="mb-3 grid grid-cols-3 gap-3">
+                    {previewUrls.map((url, idx) => (
+                      <div key={idx} className="group relative aspect-square overflow-hidden rounded-xl border border-white/10">
+                        <img
+                          src={url}
+                          alt={`Preview ${idx + 1}`}
+                          className="h-full w-full object-cover"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveImage(idx)}
+                          className="absolute right-2 top-2 rounded-full bg-red-500 p-1.5 text-white opacity-0 transition hover:bg-red-600 group-hover:opacity-100"
+                          aria-label="Remove image"
+                        >
+                          <FaTimes className="text-xs" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                
                 <input
                   type="file"
                   accept="image/*"
                   multiple
-                  onChange={(e) => {
-                    const list = e.target.files ? Array.from(e.target.files) : [];
-                    setFiles(list.slice(0, 3));
-                  }}
-                  className="w-full text-sm sm:text-base file:rounded file:bg-white/10 file:text-white file:py-2 file:px-3"
+                  onChange={handleFileChange}
+                  className="w-full text-sm sm:text-base file:rounded file:bg-white/10 file:text-white file:py-2 file:px-3 file:cursor-pointer file:transition hover:file:bg-white/20"
                 />
-                <p className="text-[11px] sm:text-xs text-gray-400 mt-1">Max 3 images.</p>
-                {files.length > 0 && (
-                  <div className="text-sm text-gray-300 mt-2">Selected: {files.map((f) => f.name).join(', ')}</div>
-                )}
+                <p className="text-[11px] sm:text-xs text-gray-400 mt-1">Max 3 images. Click X to remove.</p>
                 {uploading && <div className="text-sm text-gray-400 mt-2">Uploading images...</div>}
               </div>
 
