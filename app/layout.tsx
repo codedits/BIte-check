@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { Inter } from 'next/font/google';
+import { Poppins } from 'next/font/google';
 import './globals.css';
 
 import Providers from '@/components/Providers';
@@ -9,7 +9,7 @@ import Navbar from '@/components/Navbar';
 import AdaptiveFooter from '@/components/AdaptiveFooter';
 import WarmRestaurantsCache from '@/components/WarmRestaurantsCache';
 
-const inter = Inter({ subsets: ['latin'] });
+const poppins = Poppins({ subsets: ['latin'], weight: ['300','400','500','600','700'], display: 'swap' });
 
 export const metadata: Metadata = {
   title: 'BiteCheck - Discover Amazing Restaurants',
@@ -33,7 +33,7 @@ export default function RootLayout({
         <link rel="preconnect" href="https://res.cloudinary.com" />
         <link rel="preconnect" href="https://images.unsplash.com" />
       </head>
-      <body className={`${inter.className} antialiased bg-black text-white`}>
+  <body className={`${poppins.className} antialiased bg-black text-white`}>
         <QueryProvider>
           <Providers>
             <div className="min-h-screen flex flex-col pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]">

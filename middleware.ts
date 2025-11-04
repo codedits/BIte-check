@@ -16,9 +16,7 @@ export function middleware(req: NextRequest) {
   res.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
   res.headers.set('X-Content-Type-Options', 'nosniff');
   res.headers.set('X-Frame-Options', 'DENY');
-  // Allow geolocation on same-origin pages so the Explore page can use navigator.geolocation
-  // You can further restrict by listing explicit origins: geolocation=(self "https://yourdomain.com")
-  res.headers.set('Permissions-Policy', 'geolocation=(self)');
+  res.headers.set('Permissions-Policy', 'geolocation=()');
 
   return res;
 }

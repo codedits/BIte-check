@@ -4,6 +4,7 @@ import React, { useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FaTimes, FaChevronLeft, FaChevronRight } from 'react-icons/fa';
 import CloudImage from '@/components/CloudImage';
+import { normalizeImageSrc } from '@/lib/normalizeImageSrc';
 
 interface ImageLightboxProps {
   images: string[];
@@ -34,7 +35,8 @@ export default function ImageLightbox({ images, index, onClose, onNavigate }: Im
 
   if (!current) return null;
 
-  const src = /^https?:/i.test(current) ? current : `https://${current}`;
+  const src = normalizeImageSrc(current);
+  if (!src) return null;
 
   return (
     <AnimatePresence>
@@ -101,10 +103,11 @@ export default function ImageLightbox({ images, index, onClose, onNavigate }: Im
         {total > 1 && (
           <div className="flex gap-2 overflow-x-auto px-4 pb-3 md:pb-4" aria-label="Image thumbnails">
             {images.map((img, i) => {
-              const tSrc = /^https?:/i.test(img) ? img : `https://${img}`;
+              const tSrc = normalizeImageSrc(img);
+              if (!tSrc) return null;
               return (
                 <button
-                  key={img + i}
+                  key={`${tSrc}-${i}`}
                   onClick={() => onNavigate(i)}
                   className={`relative h-14 md:h-16 aspect-video rounded-md overflow-hidden border ${i === index ? 'border-orange-500' : 'border-white/10 hover:border-white/30'} flex-shrink-0`}
                   aria-label={`View image ${i + 1}`}

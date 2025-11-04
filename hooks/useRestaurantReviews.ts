@@ -30,6 +30,14 @@ export function useRestaurantReviews(name?: string) {
     staleTime: 30_000,
   });
 
+  async function deleteRestaurantReviewRequest(id: string): Promise<void> {
+    const res = await fetch(`/api/reviews?id=${id}`, { method: 'DELETE', credentials: 'include' });
+    if (!res.ok) {
+      const data = await res.json();
+      throw new Error(data.error || 'Failed to delete review');
+    }
+  }
+
   const mutation = useMutation({
     mutationFn: (payload: any) => postRestaurantReview(payload),
     onMutate: async (payload: any) => {
@@ -63,10 +71,27 @@ export function useRestaurantReviews(name?: string) {
     }
   });
 
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => deleteRestaurantReviewRequest(id),
+    onMutate: async (id: string) => {
+      await qc.cancelQueries({ queryKey });
+      const prev = qc.getQueryData<Review[]>(queryKey) || [];
+      qc.setQueryData<Review[]>(queryKey, prev.filter(r => r._id !== id));
+      return { prev };
+    },
+    onError: (_err, _id, ctx: { prev?: Review[] } | undefined) => {
+      if (ctx?.prev) qc.setQueryData(queryKey, ctx.prev);
+    },
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey });
+    }
+  });
+
   return {
     reviews: data || [],
     loading: isLoading || isFetching,
     error: error ? (error as Error).message : null,
     addReview: (payload: any) => mutation.mutateAsync(payload)
+  , deleteReview: (id: string) => deleteMutation.mutateAsync(id)
   };
 }

@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FaTimes } from 'react-icons/fa';
 import StarRating from './StarRating';
+import CloudImage from './CloudImage';
 import { computeWeightedRating } from '@/lib/ratings';
 import { Review } from '@/types';
 
@@ -104,62 +105,171 @@ export default function EditReviewModal({ isOpen, onClose, review, onSubmit }: E
 					initial={{ opacity: 0 }}
 					animate={{ opacity: 1 }}
 					exit={{ opacity: 0 }}
-					className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
+					className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-md"
 					onClick={handleClose}
 				>
 					<motion.div
-						initial={{ scale: 0.9, opacity: 0 }}
-						animate={{ scale: 1, opacity: 1 }}
-						exit={{ scale: 0.9, opacity: 0 }}
-						transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-						className="glass-modal w-full max-w-md"
+						initial={{ scale: 0.95, opacity: 0, y: 20 }}
+						animate={{ scale: 1, opacity: 1, y: 0 }}
+						exit={{ scale: 0.95, opacity: 0, y: 20 }}
+						transition={{ type: 'spring', damping: 30, stiffness: 300 }}
+						className="w-full max-w-lg overflow-hidden rounded-3xl border border-white/10 bg-black/90 backdrop-blur-xl"
 						onClick={(e) => e.stopPropagation()}
 					>
-						<div className="flex items-center justify-between mb-4">
-							<h2 className="text-xl font-bold text-white">Edit Review</h2>
-							<button onClick={handleClose} className="glass-button p-2 hover:bg-red-500/20 hover:text-red-400"><FaTimes /></button>
+						{/* Header */}
+						<div className="border-b border-white/10 px-6 py-5">
+							<div className="flex items-center justify-between">
+								<h2 className="text-xl font-semibold text-white">Edit Review</h2>
+								<button 
+									onClick={handleClose} 
+									className="rounded-full p-2 text-white/60 transition hover:bg-white/10 hover:text-white"
+								>
+									<FaTimes />
+								</button>
+							</div>
 						</div>
-						<form onSubmit={handleSubmit} className="space-y-4">
-							{/* Restaurant meta edits */}
-							<div className="grid grid-cols-1 gap-3">
+
+						{/* Content */}
+						<form onSubmit={handleSubmit} className="max-h-[70vh] space-y-6 overflow-y-auto px-6 py-6">
+							{/* Restaurant Info */}
+							<div className="space-y-4">
 								<div>
-									<label className="block text-sm font-medium text-gray-300 mb-1">Restaurant Name</label>
-									<input className="glass-input w-full" value={formData.restaurantName} onChange={(e)=> setFormData({ ...formData, restaurantName: e.target.value })} placeholder="Restaurant name" />
+									<label className="mb-2 block text-xs uppercase tracking-wider text-white/50">
+										Restaurant Name
+									</label>
+									<input 
+										className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-white placeholder-white/40 outline-none transition focus:border-white/30 focus:bg-white/10" 
+										value={formData.restaurantName} 
+										onChange={(e) => setFormData({ ...formData, restaurantName: e.target.value })} 
+										placeholder="Enter restaurant name" 
+									/>
 								</div>
 								<div>
-									<label className="block text-sm font-medium text-gray-300 mb-1">Location</label>
-									<input className="glass-input w-full" value={formData.restaurantLocation} onChange={(e)=> setFormData({ ...formData, restaurantLocation: e.target.value })} placeholder="City / Area" />
+									<label className="mb-2 block text-xs uppercase tracking-wider text-white/50">
+										Location
+									</label>
+									<input 
+										className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-white placeholder-white/40 outline-none transition focus:border-white/30 focus:bg-white/10" 
+										value={formData.restaurantLocation} 
+										onChange={(e) => setFormData({ ...formData, restaurantLocation: e.target.value })} 
+										placeholder="City / Area" 
+									/>
 								</div>
 							</div>
 
-							<div className="grid grid-cols-1 gap-3">
-								{(['taste','presentation','service','ambiance','value'] as const).map(key => (
-									<div key={key} className="flex items-center justify-between">
-										<span className="text-sm text-gray-300 capitalize">{key}</span>
-										<div className="flex items-center gap-3">
-											<StarRating rating={(formData as any)[key]} onRatingChange={(r) => setFormData({ ...formData, [key]: r })} />
-											<span className="text-white font-medium">{(formData as any)[key] || '-'}</span>
+							{/* Ratings */}
+							<div>
+								<label className="mb-3 block text-xs uppercase tracking-wider text-white/50">
+									Rating Breakdown
+								</label>
+								<div className="space-y-3 rounded-2xl border border-white/10 bg-white/5 p-4">
+									{(['taste', 'presentation', 'service', 'ambiance', 'value'] as const).map(key => (
+										<div key={key} className="flex items-center justify-between">
+											<span className="text-sm capitalize text-white/80">{key}</span>
+											<div className="flex items-center gap-3">
+												<StarRating 
+													rating={(formData as any)[key]} 
+													onRatingChange={(r) => setFormData({ ...formData, [key]: r })} 
+												/>
+												<span className="w-6 text-right text-sm font-medium text-white">
+													{(formData as any)[key] || '-'}
+												</span>
+											</div>
+										</div>
+									))}
+									<div className="mt-4 flex items-center justify-between border-t border-white/10 pt-3">
+										<span className="text-sm font-medium text-white/90">Overall</span>
+										<div className="text-base font-semibold text-white">
+											{overallValue > 0 ? `${overallValue} / 5` : '- / 5'}
 										</div>
 									</div>
-								))}
-								<div className="flex items-center justify-between mt-2 pt-2 border-t border-white/5">
-									<span className="text-sm text-gray-300">Overall (weighted)</span>
-									<div className="text-white font-semibold">{overallValue > 0 ? `${overallValue} / 5` : '- / 5'}</div>
 								</div>
 							</div>
+
+							{/* Comment */}
 							<div>
-								<label className="block text-sm font-medium text-gray-300 mb-2">Comment</label>
-								<textarea value={formData.comment} onChange={(e)=> setFormData({ ...formData, comment: e.target.value })} className="glass-input w-full h-24 resize-none text-sm" required />
+								<label className="mb-2 block text-xs uppercase tracking-wider text-white/50">
+									Comment
+								</label>
+								<textarea 
+									value={formData.comment} 
+									onChange={(e) => setFormData({ ...formData, comment: e.target.value })} 
+									className="h-32 w-full resize-none rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder-white/40 outline-none transition focus:border-white/30 focus:bg-white/10" 
+									placeholder="Share your experience..."
+									required 
+								/>
 							</div>
+
+							{/* Current Photos */}
+							{review.images && review.images.length > 0 && (
+								<div>
+									<label className="mb-3 block text-xs uppercase tracking-wider text-white/50">
+										Current Photos ({review.images.length})
+									</label>
+									<div className="grid grid-cols-3 gap-3">
+										{review.images.map((img, idx) => (
+											<div key={idx} className="group relative aspect-square overflow-hidden rounded-xl border border-white/10">
+												<CloudImage
+													src={img}
+													alt={`Review photo ${idx + 1}`}
+													width={200}
+													height={200}
+													fillCrop
+													className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-110"
+												/>
+												<div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 transition-opacity group-hover:opacity-100" />
+											</div>
+										))}
+									</div>
+								</div>
+							)}
+
+							{/* Add More Photos */}
 							<div>
-								<label className="block text-sm font-medium text-gray-300 mb-2">Add More Photos (optional)</label>
-								<input type="file" multiple accept="image/*" onChange={(e)=> setFiles(e.target.files ? Array.from(e.target.files).slice(0,3) : [])} className="w-full text-sm file:rounded file:bg-white/10 file:text-white file:py-2 file:px-3" />
-								{files.length > 0 && <div className="mt-2 text-xs text-gray-400">New files: {files.map(f=> f.name).join(', ')}</div>}
-								{(review.images && review.images.length > 0) && <div className="mt-2 text-xs text-gray-400">Existing images: {review.images.length}</div>}
-								{uploading && <div className="text-xs text-gray-400 mt-1">Uploading...</div>}
+								<label className="mb-2 block text-xs uppercase tracking-wider text-white/50">
+									Add More Photos (optional)
+								</label>
+								<input 
+									type="file" 
+									multiple 
+									accept="image/*" 
+									onChange={(e) => setFiles(e.target.files ? Array.from(e.target.files).slice(0, 3) : [])} 
+									className="w-full cursor-pointer rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white/80 transition file:mr-4 file:cursor-pointer file:rounded-lg file:border-0 file:bg-white/10 file:px-4 file:py-2 file:text-sm file:font-medium file:text-white file:transition hover:file:bg-white/20" 
+								/>
+								{files.length > 0 && (
+									<div className="mt-2 text-xs text-white/60">
+										Adding {files.length} new {files.length === 1 ? 'photo' : 'photos'}
+									</div>
+								)}
+								{uploading && (
+									<div className="mt-2 flex items-center gap-2 text-xs text-white/60">
+										<div className="h-3 w-3 animate-spin rounded-full border-2 border-white/20 border-t-white" />
+										Uploading photos...
+									</div>
+								)}
 							</div>
-							{error && <div className="text-red-400 text-sm bg-red-400/10 p-2 rounded">{error}</div>}
-							<motion.button type="submit" whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }} disabled={uploading} className="glass-button w-full bg-white text-black font-semibold py-2 disabled:opacity-50 disabled:cursor-not-allowed">Save Changes</motion.button>
+
+							{/* Error */}
+							{error && (
+								<motion.div
+									initial={{ opacity: 0, y: -10 }}
+									animate={{ opacity: 1, y: 0 }}
+									className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400"
+								>
+									{error}
+								</motion.div>
+							)}
+
+							{/* Submit */}
+							<motion.button 
+								type="submit" 
+								whileHover={{ scale: 1.01 }} 
+								whileTap={{ scale: 0.99 }} 
+								disabled={uploading} 
+								className="w-full rounded-xl bg-white px-6 py-3 font-semibold text-black transition hover:bg-white/90 disabled:cursor-not-allowed disabled:opacity-50"
+							>
+								{uploading ? 'Saving...' : 'Save Changes'}
+							</motion.button>
 						</form>
 					</motion.div>
 				</motion.div>

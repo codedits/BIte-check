@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, memo, useCallback } from 'react';
 import { FaStar } from 'react-icons/fa';
 
 interface StarRatingProps {
@@ -10,12 +10,12 @@ interface StarRatingProps {
   size?: 'sm' | 'md' | 'lg';
 }
 
-export default function StarRating({ 
+const StarRating = memo(({ 
   rating, 
   onRatingChange, 
   readonly = false, 
   size = 'md' 
-}: StarRatingProps) {
+}: StarRatingProps) => {
   const [hoverRating, setHoverRating] = useState(0);
   
   const sizeClasses = {
@@ -24,23 +24,23 @@ export default function StarRating({
     lg: 'w-6 h-6'
   };
 
-  const handleClick = (selectedRating: number) => {
+  const handleClick = useCallback((selectedRating: number) => {
     if (!readonly && onRatingChange) {
       onRatingChange(selectedRating);
     }
-  };
+  }, [readonly, onRatingChange]);
 
-  const handleMouseEnter = (selectedRating: number) => {
+  const handleMouseEnter = useCallback((selectedRating: number) => {
     if (!readonly) {
       setHoverRating(selectedRating);
     }
-  };
+  }, [readonly]);
 
-  const handleMouseLeave = () => {
+  const handleMouseLeave = useCallback(() => {
     if (!readonly) {
       setHoverRating(0);
     }
-  };
+  }, [readonly]);
 
   return (
     <div className="flex items-center gap-1">
@@ -73,4 +73,14 @@ export default function StarRating({
       })}
     </div>
   );
-}
+}, (prevProps, nextProps) => {
+  return (
+    prevProps.rating === nextProps.rating &&
+    prevProps.readonly === nextProps.readonly &&
+    prevProps.size === nextProps.size
+  );
+});
+
+StarRating.displayName = 'StarRating';
+
+export default StarRating;

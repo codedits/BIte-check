@@ -1,4 +1,6 @@
-'use client';
+ 'use client';
+
+import PageSkeleton from '@/components/PageSkeleton';
 
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
@@ -101,98 +103,104 @@ export default function ExplorePage() {
   };
 
   return (
-  <div className="min-h-screen pt-16 pb-8 px-3 sm:px-4 bg-black">
-      <div className="max-w-7xl mx-auto">
-        {/* Minimal Header */}
-        <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} className="text-center mb-6 sm:mb-8 py-6 sm:py-8">
-          <h1 className="text-2xl sm:text-4xl md:text-5xl font-extrabold text-orange-400 mb-2 leading-tight">Explore Restaurants</h1>
-          <p className="text-xs sm:text-sm md:text-base text-gray-300 max-w-2xl md:max-w-3xl mx-auto px-1">Find places to eat using a simple search — minimal UI, fast results.</p>
+    <div className="min-h-screen bg-black pt-20 pb-16 px-4 sm:px-6">
+      <div className="mx-auto max-w-7xl">
+        {/* Header */}
+        <motion.div 
+          initial={{ opacity: 0, y: 12 }} 
+          animate={{ opacity: 1, y: 0 }} 
+          className="mb-12 text-center"
+        >
+          <h1 className="mb-3 text-4xl font-semibold text-white sm:text-5xl">
+            Explore
+          </h1>
+          <p className="text-sm text-white/60">
+            Discover exceptional dining experiences
+          </p>
         </motion.div>
 
-        {/* Search + Nearest */}
-        {/* Compact Search */}
-        <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.08 }} className="mb-5 sm:mb-6">
-          <div className="relative max-w-xl sm:max-w-2xl md:max-w-3xl mx-auto flex flex-col gap-3">
+        {/* Search */}
+        <motion.div 
+          initial={{ opacity: 0, y: 12 }} 
+          animate={{ opacity: 1, y: 0 }} 
+          transition={{ delay: 0.1 }} 
+          className="mb-10"
+        >
+          <div className="mx-auto flex max-w-2xl flex-col gap-4">
             <div className="relative">
+              <FaSearch className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-white/40" />
               <input
                 type="text"
                 aria-label="Search restaurants"
-                className="w-full px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg bg-black/60 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-orange-500 text-sm sm:text-base"
-                placeholder="Search restaurants"
+                className="w-full rounded-full border border-white/10 bg-white/5 py-3 pl-12 pr-4 text-white placeholder-white/40 outline-none transition focus:border-white/30 focus:ring-2 focus:ring-white/20"
+                placeholder="Search by name or cuisine..."
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
               />
-              <FaSearch className="absolute right-3 top-1/2 -translate-y-1/2 text-orange-400 text-sm pointer-events-none" />
             </div>
+            
             <div className="flex items-center justify-center gap-3">
               <motion.button
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
                 onClick={handleFindNearby}
                 disabled={isLocating}
-                className="inline-flex items-center justify-center rounded-md border border-white/20 bg-transparent text-white/90 hover:bg-white/10 px-3 sm:px-3.5 py-1.5 text-xs sm:text-sm font-medium disabled:opacity-50"
+                className="rounded-full border border-white/20 bg-white/5 px-5 py-2 text-sm font-medium text-white/90 transition hover:bg-white/10 disabled:opacity-50"
               >
-                {isLocating ? 'Locating…' : 'Find restaurants near me'}
+                {isLocating ? 'Locating…' : 'Near me'}
               </motion.button>
               {mode === 'nearest' && (
                 <motion.button
-                  whileHover={{ scale: 1.04 }}
-                  whileTap={{ scale: 0.96 }}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
                   onClick={handleResetView}
-                  className="glass-button bg-black/60 text-white hover:bg-black/50 font-semibold px-4 sm:px-5 py-2 text-sm sm:text-base"
+                  className="rounded-full bg-white px-5 py-2 text-sm font-semibold text-black transition hover:bg-white/90"
                 >
                   Show all
                 </motion.button>
               )}
             </div>
             {geoError && (
-              <div className="text-center text-red-400 text-xs sm:text-sm">{geoError}</div>
+              <motion.div
+                initial={{ opacity: 0, y: -6 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="rounded-full border border-red-500/30 bg-red-500/10 px-4 py-2 text-center text-sm text-red-400"
+              >
+                {geoError}
+              </motion.div>
             )}
             {mode === 'nearest' && userCoords && (
-              <div className="text-center text-gray-400 text-xs sm:text-sm">Showing the nearest restaurant to your location.</div>
+              <motion.div
+                initial={{ opacity: 0, y: -6 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-center text-xs text-white/60"
+              >
+                Showing nearest restaurant
+              </motion.div>
             )}
           </div>
         </motion.div>
       {/* Loading Skeletons */}
       {loading && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <div key={`skeleton-${i}`}>
-              {/* lazy-load a simple skeleton component */}
-              <div className="animate-pulse relative overflow-hidden rounded-xl shadow-lg elegant-card p-4">
-                <div className="h-56 bg-gradient-to-br from-gray-800 to-gray-900 rounded-md mb-4" />
-                <div className="space-y-3">
-                  <div className="h-6 bg-gray-700 rounded w-3/4" />
-                  <div className="h-4 bg-gray-700 rounded w-full" />
-                  <div className="h-4 bg-gray-700 rounded w-5/6" />
-                  <div className="flex items-center gap-2 pt-3 border-t border-gray-700/50">
-                    <div className="w-6 h-6 bg-gray-700 rounded-full" />
-                    <div className="h-4 bg-gray-700 rounded w-1/3" />
-                  </div>
-                  <div className="pt-4">
-                    <div className="h-10 bg-gray-700 rounded-xl w-full" />
-                  </div>
-                </div>
-              </div>
-            </div>
-          ))}
+        <div className="mt-4">
+          <PageSkeleton variant="explore" />
         </div>
       )}
 
       {/* Error State */}
       {error && (
         <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="glass-card text-center py-12 sm:py-16 lg:py-20"
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="rounded-3xl border border-white/10 bg-white/5 px-8 py-20 text-center backdrop-blur-xl"
         >
-          <div className="text-red-400 text-xl sm:text-2xl mb-3 sm:mb-4">Error loading restaurants</div>
-          <div className="text-gray-500 text-sm sm:text-base lg:text-lg mb-4 sm:mb-6">{error}</div>
+          <div className="mb-3 text-xl text-red-400">Error loading restaurants</div>
+          <div className="mb-6 text-sm text-white/60">{error}</div>
           <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
             onClick={() => router.refresh()}
-            className="glass-button bg-white text-black hover:bg-gray-100 font-semibold px-6 sm:px-8 py-2.5 sm:py-3 text-sm sm:text-base lg:text-lg"
+            className="rounded-full bg-white px-8 py-3 font-semibold text-black transition hover:bg-white/90"
           >
             Try Again
           </motion.button>
@@ -201,51 +209,52 @@ export default function ExplorePage() {
 
       
 
-  {/* Restaurant Grid */}
-  {!loading && !error && filteredRestaurants.length > 0 ? (
-        <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-5 md:gap-6">
-          {filteredRestaurants.map((restaurant: Restaurant, index) => (
-            <motion.div
-              key={restaurant._id}
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.35, delay: index * 0.04 }}
-              className="flex"
-            >
-              <SimpleRestaurantCard
-                restaurant={restaurant}
-                onClick={() => handleRestaurantClick(restaurant._id)}
-                className="w-full"
-              />
-            </motion.div>
-          ))}
-        </div>
-      ) : !loading && !error ? (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="glass-card text-center py-12 sm:py-16 lg:py-20"
-        >
-          <div className="text-gray-400 text-xl sm:text-2xl mb-3 sm:mb-4">No restaurants found</div>
-          <div className="text-gray-500 text-sm sm:text-base lg:text-lg mb-4 sm:mb-6">
-    {(restaurants ?? []).length === 0 ? (
-              "No restaurants have been added yet. Be the first to add a restaurant!"
-            ) : (
-      mode === 'nearest' ? "Couldn't find any restaurants with coordinates yet. Try 'Show all' or add coordinates when adding a restaurant." : "Try adjusting your search terms or filters"
-            )}
+        {/* Restaurant Grid */}
+        {!loading && !error && filteredRestaurants.length > 0 ? (
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {filteredRestaurants.map((restaurant: Restaurant, index) => (
+              <motion.div
+                key={restaurant._id}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4, delay: index * 0.05 }}
+              >
+                <SimpleRestaurantCard
+                  restaurant={restaurant}
+                  onClick={() => handleRestaurantClick(restaurant._id)}
+                  priority={index < 4}
+                />
+              </motion.div>
+            ))}
           </div>
+        ) : !loading && !error ? (
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="rounded-3xl border border-white/10 bg-white/5 px-8 py-20 text-center backdrop-blur-xl"
+          >
+            <div className="mb-3 text-xl text-white/80">No restaurants found</div>
+            <div className="mb-6 text-sm text-white/60">
+              {(restaurants ?? []).length === 0 ? (
+                "No restaurants have been added yet. Be the first!"
+              ) : (
+                mode === 'nearest' 
+                  ? "No restaurants with coordinates found. Try 'Show all'." 
+                  : "Try adjusting your search"
+              )}
+            </div>
             {(restaurants ?? []).length === 0 && (
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={() => router.push('/profile')}
-              className="glass-button bg-white text-black hover:bg-gray-100 font-semibold px-6 sm:px-8 py-2.5 sm:py-3 text-sm sm:text-base lg:text-lg"
-            >
-              Add First Restaurant
-            </motion.button>
-          )}
-        </motion.div>
-      ) : null}
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={() => router.push('/profile')}
+                className="rounded-full bg-white px-8 py-3 font-semibold text-black transition hover:bg-white/90"
+              >
+                Add First Restaurant
+              </motion.button>
+            )}
+          </motion.div>
+        ) : null}
 
         
       </div>

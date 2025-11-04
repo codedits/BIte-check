@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import AddRestaurantModal from '@/components/AddRestaurantModal';
 import EditReviewModal from '@/components/EditReviewModal';
+import PageSkeleton from '@/components/PageSkeleton';
 import { Review } from '@/types';
 
 export default function ProfilePage() {
@@ -20,11 +21,7 @@ export default function ProfilePage() {
   const { reviews: userReviews = [], loading: reviewsLoading, deleteReview, editReview } = useReviews(user?.id);
 
   if (loading) {
-    return (
-      <div className="min-h-screen bg-black flex items-center justify-center">
-        <div className="text-white">Checking authentication…</div>
-      </div>
-    );
+    return <PageSkeleton variant="profile" />;
   }
 
   if (!isAuthenticated) {
@@ -41,54 +38,70 @@ export default function ProfilePage() {
   };
 
   return (
-    <div className="min-h-screen bg-black pt-24 pb-16 px-4 sm:px-6">
-      <div className="max-w-4xl mx-auto w-full">
+    <div className="min-h-screen bg-black">
+      <main className="mx-auto max-w-5xl px-4 pb-20 pt-24 sm:px-6 lg:px-8">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6 mb-10">
-          <div className="flex items-center gap-4">
-            <div className="w-14 h-14 sm:w-16 sm:h-16 bg-orange-500 rounded-full flex items-center justify-center text-white font-bold text-xl">
+        <div className="mb-12 flex flex-col gap-8 sm:flex-row sm:items-start sm:justify-between">
+          <div className="flex items-center gap-5">
+            <div className="flex h-20 w-20 flex-shrink-0 items-center justify-center rounded-full border-2 border-white/10 bg-gradient-to-br from-orange-500/20 to-orange-600/5 text-2xl font-bold text-white">
               {user?.name?.charAt(0)?.toUpperCase() || user?.email?.charAt(0)?.toUpperCase() || 'U'}
             </div>
-            <div className="space-y-1 min-w-0">
-              <h1 className="text-xl sm:text-2xl font-semibold text-white truncate">{user?.name || user?.email}</h1>
-              <p className="text-sm text-gray-400 truncate">{user?.email}</p>
+            <div className="space-y-1">
+              <h1 className="text-2xl font-semibold text-white sm:text-3xl">{user?.name || user?.email}</h1>
+              <p className="text-sm text-white/50">{user?.email}</p>
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-3">
             <button
               onClick={() => setIsAddRestaurantModalOpen(true)}
-              className="flex items-center gap-2 bg-white text-black px-4 py-2 rounded-md text-sm font-medium w-full xs:w-auto justify-center"
+              className="inline-flex items-center gap-2 rounded-full bg-white px-5 py-2.5 text-sm font-semibold text-black transition-transform hover:-translate-y-0.5"
             >
-              <FaPlus /> Add
+              <FaPlus className="text-xs" />
+              Add review
             </button>
             <button
               onClick={handleLogout}
-              className="flex items-center gap-2 border border-white/15 px-4 py-2 rounded-md text-white text-sm font-medium w-full xs:w-auto justify-center"
+              className="inline-flex items-center gap-2 rounded-full border border-white/15 px-5 py-2.5 text-sm text-white/80 transition hover:border-white/30 hover:text-white"
             >
-              <FaSignOutAlt /> Sign out
+              <FaSignOutAlt className="text-xs" />
+              Sign out
             </button>
           </div>
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-2 gap-4 sm:gap-6 mb-10">
-          <div className="p-4 sm:p-5 bg-white/5 rounded-lg text-center flex flex-col gap-1">
-            <span className="text-[11px] tracking-wide uppercase text-gray-400">Reviews</span>
-            <span className="text-2xl font-bold text-white leading-none">{totalReviews}</span>
+        <div className="mb-16 grid grid-cols-2 gap-4 sm:gap-6">
+          <div className="flex flex-col gap-2 rounded-3xl border border-white/10 bg-white/5 p-6 text-center">
+            <span className="text-xs uppercase tracking-[0.3em] text-white/40">Reviews</span>
+            <span className="text-4xl font-semibold text-white">{totalReviews}</span>
           </div>
-          <div className="p-4 sm:p-5 bg-white/5 rounded-lg text-center flex flex-col gap-1">
-            <span className="text-[11px] tracking-wide uppercase text-gray-400">Avg Rating</span>
-            <span className="text-2xl font-bold text-white leading-none">{averageRating}</span>
+          <div className="flex flex-col gap-2 rounded-3xl border border-white/10 bg-white/5 p-6 text-center">
+            <span className="text-xs uppercase tracking-[0.3em] text-white/40">Avg Rating</span>
+            <span className="text-4xl font-semibold text-white">{averageRating}</span>
           </div>
         </div>
 
         {/* Recent Reviews */}
-        <section aria-labelledby="recent-reviews" className="mb-6">
-          <h2 id="recent-reviews" className="text-lg font-semibold text-white mb-4">Your recent reviews</h2>
+        <section aria-labelledby="recent-reviews">
+          <div className="mb-6 flex items-center justify-between">
+            <div>
+              <h2 id="recent-reviews" className="text-sm uppercase tracking-[0.4em] text-white/50">Your reviews</h2>
+              <p className="mt-2 text-xl font-semibold text-white">Recent contributions</p>
+            </div>
+          </div>
           {reviewsLoading ? (
-            <div className="text-gray-400 text-sm">Loading…</div>
+            <div className="text-sm text-white/60">Loading…</div>
           ) : userReviews.length === 0 ? (
-            <div className="text-gray-500 text-sm">You haven't posted any reviews yet.</div>
+            <div className="flex flex-col items-center gap-6 rounded-3xl border border-white/10 bg-white/5 p-12 text-center">
+              <p className="text-sm text-white/60">You haven't posted any reviews yet.</p>
+              <button
+                onClick={() => setIsAddRestaurantModalOpen(true)}
+                className="inline-flex items-center gap-2 rounded-full bg-white px-5 py-2.5 text-sm font-semibold text-black"
+              >
+                <FaPlus className="text-xs" />
+                Add your first review
+              </button>
+            </div>
           ) : (
             <ul className="space-y-3">
               {userReviews
@@ -102,22 +115,22 @@ export default function ProfilePage() {
                   );
                   return isOwner;
                 })
-                .slice(0, 6)
+                .slice(0, 10)
                 .map((rev: Review) => (
-                  <li key={rev._id} className="p-3 sm:p-4 bg-white/5 rounded-lg flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-6">
-                    <div className="min-w-0">
-                      <div className="text-sm font-medium text-white truncate">{rev.restaurant}</div>
-                      <div className="text-[11px] uppercase tracking-wide text-gray-400 mt-0.5">{new Date(rev.createdAt).toLocaleDateString()}</div>
+                  <li key={rev._id} className="group flex flex-col gap-4 rounded-3xl border border-white/10 bg-white/5 p-5 transition hover:border-white/20 hover:bg-white/10 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="min-w-0 flex-1">
+                      <div className="text-base font-medium text-white">{rev.restaurant}</div>
+                      <div className="mt-1 text-xs uppercase tracking-wide text-white/40">{new Date(rev.createdAt).toLocaleDateString()}</div>
                     </div>
-                      <div className="flex items-center justify-between sm:justify-end gap-3">
-                      <div className="text-sm font-semibold text-yellow-400 whitespace-nowrap">{rev.rating}/5</div>
-                        <button
-                          onClick={() => { setEditingReview(rev); setIsEditOpen(true); }}
-                          title="Edit review"
-                          className="p-2 rounded-md text-sm text-blue-400 hover:bg-white/10 transition-colors"
-                        >
-                          <FaEdit />
-                        </button>
+                    <div className="flex items-center gap-3">
+                      <span className="rounded-full bg-white/10 px-3 py-1 text-sm font-medium text-white">{rev.rating}/5</span>
+                      <button
+                        onClick={() => { setEditingReview(rev); setIsEditOpen(true); }}
+                        title="Edit review"
+                        className="flex h-9 w-9 items-center justify-center rounded-full text-sm text-white/60 transition hover:bg-white/10 hover:text-white"
+                      >
+                        <FaEdit />
+                      </button>
                       <button
                         onClick={async () => {
                           const ok = window.confirm('Delete this review? This cannot be undone.');
@@ -129,7 +142,7 @@ export default function ProfilePage() {
                           }
                         }}
                         title="Delete review"
-                        className="p-2 rounded-md text-sm text-red-400 hover:bg-white/10 transition-colors"
+                        className="flex h-9 w-9 items-center justify-center rounded-full text-sm text-red-400/80 transition hover:bg-red-500/10 hover:text-red-400"
                       >
                         <FaTrash />
                       </button>
@@ -149,7 +162,7 @@ export default function ProfilePage() {
             await editReview(payload);
           }}
         />
-      </div>
+      </main>
     </div>
   );
 }

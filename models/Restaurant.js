@@ -56,19 +56,6 @@ const restaurantSchema = new mongoose.Schema({
     type: String,
     default: ''
   },
-  // Optional coordinates (WGS84)
-  latitude: {
-    type: Number,
-    min: -90,
-    max: 90,
-    required: false
-  },
-  longitude: {
-    type: Number,
-    min: -180,
-    max: 180,
-    required: false
-  },
   featured: {
     type: Boolean,
     default: false,
@@ -86,8 +73,6 @@ try {
   restaurantSchema.index({ createdAt: -1 }); // recent additions
   // Support quick filter + recent sort when fetching featured only
   restaurantSchema.index({ featured: 1, createdAt: -1 });
-  // Coordinate indexes for simple filtering/sorting (not true geo)
-  restaurantSchema.index({ latitude: 1, longitude: 1 }, { name: 'lat_lng' });
   // Partial index for restaurants missing images to accelerate fallback population (only docs lacking image)
   restaurantSchema.index({ createdAt: -1 }, { partialFilterExpression: { image: { $in: ['', null] } }, name: 'no_image_recent' });
   restaurantSchema.index({ name: 'text', cuisine: 'text', location: 'text', description: 'text' }); // text search

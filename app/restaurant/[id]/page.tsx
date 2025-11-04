@@ -5,6 +5,7 @@ import { useRouter, useParams } from "next/navigation";
 import { motion } from "framer-motion";
 import { FaArrowLeft, FaMapMarkerAlt, FaUtensils, FaStar, FaPlus, FaChevronDown } from "react-icons/fa";
 import CloudImage from '@/components/CloudImage';
+import PageSkeleton from '@/components/PageSkeleton';
 import AddReviewModal from "@/components/AddReviewModal";
 import ReviewList from "@/components/ReviewList";
 import { useAuth } from "@/contexts/AuthContext";
@@ -19,7 +20,7 @@ export default function RestaurantDetailPage() {
   const { isAuthenticated } = useAuth();
 
   const { restaurant, loading: restaurantLoading, error: restaurantError } = useRestaurant(id);
-  const { reviews, loading: reviewsLoading, error: reviewsError, addReview } = useRestaurantReviews(restaurant?.name);
+  const { reviews, loading: reviewsLoading, error: reviewsError, addReview, deleteReview } = useRestaurantReviews(restaurant?.name);
   const loading = restaurantLoading || reviewsLoading;
   const error = restaurantError || reviewsError;
   const [isReviewOpen, setIsReviewOpen] = useState(false);
@@ -74,11 +75,7 @@ export default function RestaurantDetailPage() {
   };
 
   if (loading) {
-    return (
-      <div className="min-h-screen bg-black flex items-center justify-center">
-        <div className="text-white text-lg">Loading...</div>
-      </div>
-    );
+    return <PageSkeleton variant="restaurant" />;
   }
 
   if (error) {
@@ -100,7 +97,7 @@ export default function RestaurantDetailPage() {
   return (
     <div className="min-h-screen bg-black">
       {/* Header */}
-      <div className="relative h-64 md:h-80 overflow-hidden mt-16">
+      <div className="relative h-80 md:h-96 lg:h-[420px] overflow-hidden mt-16">
         {restaurant.image ? (
           <CloudImage
             src={restaurant.image}
@@ -198,7 +195,15 @@ export default function RestaurantDetailPage() {
             </div>
           ) : (
             <>
-              <ReviewList reviews={reviews} />
+              <ReviewList reviews={reviews} onDelete={async (id: string) => {
+                if (!confirm('Delete this review? This cannot be undone.')) return;
+                try {
+                  await deleteReview(id);
+                } catch (err) {
+                  console.error('Delete review failed', err);
+                  alert((err as Error).message || 'Failed to delete review');
+                }
+              }} />
               {ratingBreakdown && (
                 <div className="pt-8">
                   <div className="mb-6">

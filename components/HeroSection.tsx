@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { FaPlay } from 'react-icons/fa';
 import { useRouter } from 'next/navigation';
 import { Restaurant } from '@/types';
+import { normalizeImageSrc } from '@/lib/normalizeImageSrc';
 
 interface HeroSectionProps {
   restaurants: Restaurant[] | null;
@@ -15,10 +16,6 @@ interface HeroSectionProps {
 
 export default function HeroSection({ restaurants, loading, variant = 'default' }: HeroSectionProps) {
   const router = useRouter();
-  const toAbsolute = (src?: string) => {
-    if (!src) return '';
-    return src.trim().startsWith('http') ? src.trim() : `https://${src.trim()}`;
-  };
   const heroItems = useMemo(() => {
     if (!restaurants) return [] as Restaurant[];
     const featured = restaurants.filter(r => r.featured);
@@ -96,12 +93,11 @@ export default function HeroSection({ restaurants, loading, variant = 'default' 
           >
             {(() => {
               const raw = current.image?.trim();
-              const valid = raw && raw.length > 5;
-              if (!valid) {
+              const normalized = normalizeImageSrc(raw);
+              if (!normalized) {
                 return <div className="absolute inset-0 bg-neutral-900 flex items-center justify-center text-white/30 text-sm">No Image</div>;
               }
-              const abs = toAbsolute(raw!);
-              return <CloudImage src={abs} alt={current.name} className="object-cover w-full h-full" loading="eager" />;
+              return <CloudImage src={normalized} alt={current.name} className="object-cover w-full h-full" loading="eager" />;
             })()}
           </motion.div>
         </AnimatePresence>

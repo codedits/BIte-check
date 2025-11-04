@@ -1,177 +1,149 @@
 'use client';
 
 import { useState } from 'react';
-import { motion } from 'framer-motion';
-import { FaHome, FaCompass, FaUser, FaSignOutAlt, FaBars, FaTimes } from 'react-icons/fa';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { AnimatePresence, motion } from 'framer-motion';
+import { FaBars, FaTimes } from 'react-icons/fa';
 import { useAuth } from '@/contexts/AuthContext';
+
+const links = [
+  { href: '/', label: 'Home' },
+  { href: '/explore', label: 'Explore' },
+  { href: '/profile', label: 'Profile' },
+];
 
 export default function Navbar() {
   const pathname = usePathname();
   const { user, isAuthenticated, logout } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
 
-  const navItems = [
-    { href: '/', icon: FaHome, label: 'Home' },
-    { href: '/explore', icon: FaCompass, label: 'Explore' },
-    { href: '/profile', icon: FaUser, label: 'Profile' },
-  ];
-
   const handleLogout = async () => {
     await logout();
+    setMobileOpen(false);
+  };
+
+  const renderLink = (href: string, label: string, isMobile = false) => {
+    const isActive = pathname === href;
+    const baseClasses = isMobile
+      ? 'block w-full text-left text-base'
+      : 'text-sm font-medium';
+    return (
+      <Link
+        key={href}
+        href={href}
+        aria-current={isActive ? 'page' : undefined}
+        onClick={() => setMobileOpen(false)}
+        className={`${baseClasses} rounded-full px-3 py-2 transition-colors ${
+          isActive ? 'bg-white text-black' : 'text-white/70 hover:text-white hover:bg-white/10'
+        }`}
+      >
+        {label}
+      </Link>
+    );
   };
 
   return (
     <motion.nav
-      initial={{ y: -80 }}
-      animate={{ y: 0 }}
-      transition={{ duration: 0.35 }}
-    className="relative z-10 bg-black/70 backdrop-blur-md border-b border-white/5"
+      initial={{ y: -48, opacity: 0 }}
+      animate={{ y: 0, opacity: 1 }}
+      transition={{ duration: 0.35, ease: 'easeOut' }}
+      className="sticky top-0 z-40 border-b border-white/10 bg-black/70 backdrop-blur-xl"
       role="navigation"
-      aria-label="Main navigation"
+      aria-label="Primary"
     >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16">
-          {/* Logo */}
-          <div className="flex items-center gap-3">
-            <motion.div whileHover={{ scale: 1.03 }} className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-orange-500 rounded-md flex items-center justify-center shadow-sm">
-                <FaHome className="text-white text-lg" />
-              </div>
-              <Link href="/" className="text-lg md:text-xl font-semibold text-orange-400">
-                BiteCheck
-              </Link>
-            </motion.div>
-          </div>
-
-          {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center space-x-4">
-            {navItems.map((item) => {
-              const Icon = item.icon;
-              const isActive = pathname === item.href;
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-all duration-200 font-medium text-sm ${
-                    isActive ? 'bg-orange-500 text-white' : 'text-gray-300 hover:text-white hover:bg-white/5'
-                  }`}
-                >
-                  <Icon className="text-sm" />
-                  <span className="hidden sm:inline">{item.label}</span>
-                </Link>
-              );
-            })}
-          </div>
-
-          {/* Right side - auth actions / mobile toggles */}
-          <div className="flex items-center gap-3">
-            {/* Auth (desktop) */}
-            <div className="hidden md:flex items-center gap-3">
-              {isAuthenticated ? (
-                <>
-                  <span className="text-gray-300 text-sm">Welcome, {user?.username}</span>
-                  <motion.button
-                    whileHover={{ scale: 1.03 }}
-                    whileTap={{ scale: 0.95 }}
-                    onClick={handleLogout}
-                    className="px-3 py-1 rounded-md bg-red-600 text-white text-sm"
-                    title="Sign Out"
-                  >
-                    <FaSignOutAlt />
-                  </motion.button>
-                </>
-              ) : (
-                <>
-                  <Link href="/auth/signin" className="text-sm">
-                    <motion.button whileHover={{ scale: 1.03 }} className="px-3 py-1 rounded-md glass-button text-sm">
-                      Sign In
-                    </motion.button>
-                  </Link>
-                  <Link href="/auth/signup" className="text-sm">
-                    <motion.button whileHover={{ scale: 1.03 }} className="px-3 py-1 rounded-md bg-white text-black font-semibold text-sm">
-                      Become a Critic
-                    </motion.button>
-                  </Link>
-                </>
-              )}
-            </div>
-
-            {/* Mobile nav icons (quick access) */}
-            <div className="md:hidden flex items-center gap-2">
-              {navItems.map((item) => {
-                const Icon = item.icon;
-                const isActive = pathname === item.href;
-                return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    className={`p-2 rounded-lg transition-all duration-150 ${
-                      isActive ? 'bg-orange-500 text-white' : 'text-gray-300 hover:text-white hover:bg-white/5'
-                    }`}
-                    title={item.label}
-                  >
-                    <Icon className="text-lg" />
-                  </Link>
-                );
-              })}
-
-              {/* Mobile menu toggle */}
-              <button
-                onClick={() => setMobileOpen((s) => !s)}
-                className="p-2 rounded-lg text-gray-300 hover:text-white hover:bg-white/5"
-                aria-label="Toggle menu"
-                aria-expanded={mobileOpen}
-                aria-controls="mobile-menu"
-              >
-                {mobileOpen ? <FaTimes /> : <FaBars />}
-              </button>
-            </div>
-          </div>
+      <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6">
+        <Link href="/" className="font-semibold tracking-tight text-white">
+          BiteCheck
+        </Link>
+        <div className="hidden items-center gap-6 md:flex">
+          {links.map((link) => renderLink(link.href, link.label))}
         </div>
-      </div>
-
-      {/* Mobile dropdown menu */}
-      {mobileOpen && (
-        <div id="mobile-menu" className="md:hidden bg-black/80 border-t border-white/5" role="region" aria-label="Mobile menu">
-          <div className="px-4 py-3 space-y-2">
-            {navItems.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={`block px-3 py-2 rounded-md transition-colors ${pathname === item.href ? 'bg-orange-500 text-white' : 'text-gray-300 hover:bg-white/5 hover:text-white'}`}
-                onClick={() => setMobileOpen(false)}
+        <div className="hidden items-center gap-3 md:flex">
+          {isAuthenticated ? (
+            <>
+              <span className="text-sm text-white/60">Hi, {user?.username || 'Critic'}</span>
+              <button
+                onClick={handleLogout}
+                className="rounded-full bg-white/10 px-3 py-1 text-sm text-white transition-colors hover:bg-white/20"
               >
-                <div className="flex items-center gap-2">
-                  <item.icon />
-                  <span>{item.label}</span>
-                </div>
+                Sign out
+              </button>
+            </>
+          ) : (
+            <>
+              <Link
+                href="/auth/signin"
+                className="rounded-full px-3 py-1 text-sm text-white/70 transition-colors hover:text-white"
+              >
+                Sign in
               </Link>
-            ))}
-
-            <div className="pt-2 border-t border-white/5">
+              <Link
+                href="/auth/signup"
+                className="rounded-full bg-white px-4 py-2 text-sm font-semibold text-black transition-transform hover:-translate-y-0.5"
+              >
+                Join BiteCheck
+              </Link>
+            </>
+          )}
+        </div>
+        <button
+          onClick={() => setMobileOpen((open) => !open)}
+          className="flex h-9 w-9 items-center justify-center rounded-full border border-white/10 text-white md:hidden"
+          aria-label="Toggle navigation"
+          aria-expanded={mobileOpen}
+          aria-controls="mobile-navigation"
+        >
+          {mobileOpen ? <FaTimes /> : <FaBars />}
+        </button>
+      </div>
+      <AnimatePresence>
+        {mobileOpen && (
+          <motion.div
+            id="mobile-navigation"
+            initial={{ opacity: 0, y: -12 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -12 }}
+            transition={{ duration: 0.2 }}
+            className="border-t border-white/10 bg-black/90 md:hidden"
+          >
+            <div className="mx-auto flex max-w-6xl flex-col gap-4 px-4 py-5 text-white">
+              <div className="flex flex-col gap-2">
+                {links.map((link) => renderLink(link.href, link.label, true))}
+              </div>
+              <div className="h-px bg-white/10" />
               {isAuthenticated ? (
-                <div className="flex items-center justify-between">
-                  <span className="text-gray-300">Signed in as {user?.username}</span>
-                  <button onClick={handleLogout} className="px-3 py-1 rounded-md bg-red-600 text-white text-sm">
-                    <FaSignOutAlt />
+                <div className="flex flex-col gap-3 text-sm text-white/70">
+                  <span>Signed in as {user?.username || 'Anonymous'}</span>
+                  <button
+                    onClick={handleLogout}
+                    className="rounded-full bg-white/10 px-4 py-2 text-left text-white hover:bg-white/15"
+                  >
+                    Sign out
                   </button>
                 </div>
               ) : (
-                <div className="flex gap-2">
-                  <Link href="/auth/signin" className="w-1/2">
-                    <button className="w-full px-3 py-2 rounded-md border border-white/10 text-white text-sm">Sign In</button>
+                <div className="flex flex-col gap-3">
+                  <Link
+                    href="/auth/signin"
+                    onClick={() => setMobileOpen(false)}
+                    className="rounded-full border border-white/10 px-4 py-2 text-center text-sm text-white/80 hover:text-white"
+                  >
+                    Sign in
                   </Link>
-                  <Link href="/auth/signup" className="w-1/2">
-                    <button className="w-full px-3 py-2 rounded-md bg-white text-black font-semibold text-sm">Become a Critic</button>
+                  <Link
+                    href="/auth/signup"
+                    onClick={() => setMobileOpen(false)}
+                    className="rounded-full bg-white px-4 py-2 text-center text-sm font-semibold text-black"
+                  >
+                    Join BiteCheck
                   </Link>
                 </div>
               )}
             </div>
-          </div>
-        </div>
-      )}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </motion.nav>
   );
 }

@@ -8,12 +8,18 @@ import { FaUser, FaCalendar } from 'react-icons/fa';
 import StarRating from './StarRating';
 import { Review } from '@/types';
 import ImageLightbox from '@/components/ImageLightbox';
+import ReviewDetailModal from '@/components/ReviewDetailModal';
+import { normalizeImageSrc } from '@/lib/normalizeImageSrc';
 
 interface ReviewListProps {
   reviews: Review[];
+  onDelete?: (id: string) => Promise<void> | void;
 }
 
-export default function ReviewList({ reviews }: ReviewListProps) {
+export default function ReviewList({ reviews, onDelete }: ReviewListProps) {
+  const [selectedReview, setSelectedReview] = useState<Review | null>(null);
+  const openDetail = (r: Review) => setSelectedReview(r);
+  const closeDetail = () => setSelectedReview(null);
   const [lightboxImages, setLightboxImages] = useState<string[]>([]);
   const [lightboxIndex, setLightboxIndex] = useState(0);
   const openLightbox = (images: string[], index: number) => {
@@ -40,12 +46,16 @@ export default function ReviewList({ reviews }: ReviewListProps) {
         const rawImages: string[] = [];
         if (review.imageUrl) rawImages.push(review.imageUrl);
         if (Array.isArray(review.images)) rawImages.push(...review.images);
-        const images = rawImages.filter(Boolean);
+        const images = rawImages
+          .map((img) => normalizeImageSrc(img))
+          .filter((img): img is string => Boolean(img));
         const showImages = images.slice(0, 4); // show up to 4 in grid
         const remaining = images.length - showImages.length;
 
         const renderImage = (url: string, i: number, overlayCount?: number) => {
-          const src = /^https?:/i.test(url) ? url : `https://${url}`;
+          if (!url) return null;
+          const src = normalizeImageSrc(url);
+          if (!src) return null;
           return (
             <button
               type="button"
@@ -111,8 +121,8 @@ export default function ReviewList({ reviews }: ReviewListProps) {
             transition={{ duration: 0.3, delay: index * 0.06 }}
             className="glass-card"
           >
-            {gridContent}
-            <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 sm:gap-4 mb-3 sm:mb-4">
+            <button type="button" onClick={() => openDetail(review)} className="text-left w-full">
+              <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 sm:gap-4 mb-3 sm:mb-4">
               <div className="flex items-center gap-3 sm:gap-4">
                 <div className="glass w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center flex-shrink-0">
                   <FaUser className="text-white text-sm sm:text-base" />
@@ -124,18 +134,32 @@ export default function ReviewList({ reviews }: ReviewListProps) {
                     <span>{new Date(review.createdAt).toLocaleDateString()}</span>
                   </div>
                 </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <StarRating rating={review.rating} readonly size="sm" />
+                  <span className="text-xs sm:text-sm text-gray-300 font-medium">{review.rating}</span>
+                </div>
               </div>
-              <div className="flex items-center gap-2">
-                <StarRating rating={review.rating} readonly size="sm" />
-                <span className="text-xs sm:text-sm text-gray-300 font-medium">{review.rating}</span>
-              </div>
-            </div>
-            <p className="text-gray-300 leading-relaxed text-sm sm:text-base">
-              {review.comment}
-            </p>
+              <p className="text-gray-300 leading-relaxed text-sm sm:text-base">
+                {review.comment}
+              </p>
+            </button>
           </motion.div>
         );
       })}
+      {selectedReview && (
+        <ReviewDetailModal
+          isOpen={!!selectedReview}
+          review={selectedReview}
+          onClose={closeDetail}
+          onOpenLightbox={(imgs, i) => { openLightbox(imgs, i); closeDetail(); }}
+          onDelete={async (id: string) => {
+            if (!onDelete) return;
+            await onDelete(id);
+            closeDetail();
+          }}
+        />
+      )}
       {lightboxImages.length > 0 && (
         <ImageLightbox
           images={lightboxImages}
