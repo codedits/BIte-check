@@ -7,58 +7,97 @@ export default function Footer() {
   const currentYear = new Date().getFullYear();
 
   return (
-    <footer className="border-t border-white/10 bg-black">
-      <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6 lg:px-8">
+    <footer className="relative border-t border-white/10 bg-black">
+      <div className="relative mx-auto max-w-6xl px-4 py-12 sm:px-6 lg:px-8">
         <div className="grid gap-8 md:grid-cols-3">
+          {/* Brand Section */}
           <div className="space-y-4">
-            <span className="text-xs uppercase tracking-[0.4em] text-white/50">BiteCheck</span>
-            <p className="max-w-sm text-sm text-white/60">
-              A minimal dining companion powered by the community. Discover spots that deserve your time, not just your clicks.
+            <div className="flex items-center gap-2">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-orange-500">
+                <span className="text-sm font-bold text-white">B</span>
+              </div>
+              <span className="text-lg font-bold text-white">
+                BiteCheck
+              </span>
+            </div>
+            <p className="max-w-sm text-sm text-white/60 leading-relaxed">
+              Discover exceptional dining experiences through authentic reviews from passionate food lovers.
             </p>
-            <div className="flex gap-3 text-white/50">
-              {[{ icon: FaInstagram, label: 'Instagram' }, { icon: FaTwitter, label: 'Twitter' }, { icon: FaYoutube, label: 'YouTube' }].map(({ icon: Icon, label }) => (
+            
+            {/* Social Links */}
+            <div className="flex gap-3">
+              {[
+                { icon: FaInstagram, label: 'Instagram', href: '#' },
+                { icon: FaTwitter, label: 'Twitter', href: '#' },
+                { icon: FaYoutube, label: 'YouTube', href: '#' }
+              ].map(({ icon: Icon, label, href }) => (
                 <a
                   key={label}
-                  href="#"
+                  href={href}
                   aria-label={label}
-                  className="flex h-9 w-9 items-center justify-center rounded-full border border-white/10 transition hover:border-white/30 hover:text-white"
+                  className="flex h-9 w-9 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-white/60 transition-all hover:border-orange-500/30 hover:bg-orange-500/10 hover:text-orange-500"
                 >
                   <Icon className="text-sm" />
                 </a>
               ))}
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-8 text-sm text-white/60 md:col-span-2 md:grid-cols-3">
+
+          {/* Links Grid */}
+          <div className="grid grid-cols-2 gap-8 text-sm md:col-span-2 md:grid-cols-3">
             <div className="space-y-3">
-              <span className="text-xs uppercase tracking-[0.3em] text-white/40">Navigate</span>
+              <h3 className="text-xs font-semibold uppercase tracking-wider text-orange-500">Navigate</h3>
               <ul className="space-y-2">
-                {[{ href: '/', label: 'Home' }, { href: '/explore', label: 'Explore' }, { href: '/profile', label: 'Profile' }].map((item) => (
+                {[
+                  { href: '/', label: 'Home' },
+                  { href: '/explore', label: 'Explore' },
+                  { href: '/profile', label: 'Profile' }
+                ].map((item) => (
                   <li key={item.href}>
-                    <Link href={item.href} className="transition hover:text-white">
+                    <Link 
+                      href={item.href} 
+                      className="text-white/60 transition-colors hover:text-white"
+                    >
                       {item.label}
                     </Link>
                   </li>
                 ))}
               </ul>
             </div>
+
             <div className="space-y-3">
-              <span className="text-xs uppercase tracking-[0.3em] text-white/40">Join</span>
+              <h3 className="text-xs font-semibold uppercase tracking-wider text-orange-500">Account</h3>
               <ul className="space-y-2">
-                {[{ href: '/auth/signin', label: 'Sign in' }, { href: '/auth/signup', label: 'Create account' }, { href: '/profile', label: 'Your reviews' }].map((item) => (
+                {[
+                  { href: '/auth/signin', label: 'Sign in' },
+                  { href: '/auth/signup', label: 'Get Started' },
+                  { href: '/profile', label: 'My Reviews' }
+                ].map((item) => (
                   <li key={item.href}>
-                    <Link href={item.href} className="transition hover:text-white">
+                    <Link 
+                      href={item.href} 
+                      className="text-white/60 transition-colors hover:text-white"
+                    >
                       {item.label}
                     </Link>
                   </li>
                 ))}
               </ul>
             </div>
+
             <div className="space-y-3">
-              <span className="text-xs uppercase tracking-[0.3em] text-white/40">Support</span>
+              <h3 className="text-xs font-semibold uppercase tracking-wider text-orange-500">Support</h3>
               <ul className="space-y-2">
-                {[{ href: '#', label: 'Contact' }, { href: '#', label: 'Privacy' }, { href: '#', label: 'Terms' }].map((item) => (
+                {[
+                  { href: '#', label: 'Contact' },
+                  { href: '#', label: 'Privacy' },
+                  { href: '#', label: 'Terms' }
+                ].map((item) => (
                   <li key={item.label}>
-                    <a href={item.href} className="transition hover:text-white">
+                    <a 
+                      href={item.href} 
+                      className="text-white/60 transition-colors hover:text-white"
+                    >
                       {item.label}
                     </a>
                   </li>
@@ -67,9 +106,11 @@ export default function Footer() {
             </div>
           </div>
         </div>
-        <div className="mt-12 flex flex-col gap-4 border-t border-white/10 pt-6 text-xs text-white/50 sm:flex-row sm:items-center sm:justify-between">
-          <span>© {currentYear} BiteCheck. Built for thoughtful diners.</span>
-          <span className="text-white/40">Minimal UI • Poppins type • No distractions</span>
+
+        {/* Bottom Bar */}
+        <div className="mt-8 flex flex-col gap-3 border-t border-white/10 pt-6 text-xs text-white/50 sm:flex-row sm:items-center sm:justify-between">
+          <p>© {currentYear} BiteCheck. All rights reserved.</p>
+          <p>Made for food lovers</p>
         </div>
       </div>
     </footer>

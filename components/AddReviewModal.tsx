@@ -1,339 +1,317 @@
-'use client';
+"use client";
 
-import { useState, useMemo } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { FaTimes } from 'react-icons/fa';
-import StarRating from './StarRating';
-import { useAuth } from '@/contexts/AuthContext';
-import { computeWeightedRating } from '@/lib/ratings';
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
+import { FaTimes, FaImage, FaStar, FaTrash, FaCheckCircle } from "react-icons/fa";
+import StarRating from "./StarRating";
+import { useAuth } from "@/contexts/AuthContext";
+import { computeWeightedRating } from "@/lib/ratings";
+
+interface RatingBreakdown {
+  taste: number;
+  presentation: number;
+  service: number;
+  ambiance: number;
+  value: number;
+}
 
 interface AddReviewModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (review: { username?: string; rating: number; comment: string; images?: string[]; rating_breakdown: any }) => Promise<void> | void;
-  restaurantName: string;
+  onSubmit: (payload: {
+    username?: string;
+    rating: number;
+    comment: string;
+    images?: string[];
+    rating_breakdown: RatingBreakdown;
+  }) => Promise<void> | void;
+  restaurantName?: string;
 }
 
-export default function AddReviewModal({ 
-  isOpen, 
-  onClose, 
-  onSubmit, 
-  restaurantName 
-}: AddReviewModalProps) {
-  const [formData, setFormData] = useState({
-    username: '',
-  // category ratings: 1-5
-  taste: 0,
-  presentation: 0,
-  service: 0,
-  ambiance: 0,
-  value: 0,
-  comment: ''
-  });
+const MAX_IMAGES = 3;
+
+export default function AddReviewModal({ isOpen, onClose, onSubmit, restaurantName }: AddReviewModalProps) {
+  const { user, isAuthenticated } = useAuth() as any;
+  const [username, setUsername] = useState("");
+  const [comment, setComment] = useState("");
+  const [ratings, setRatings] = useState<RatingBreakdown>({ taste: 0, presentation: 0, service: 0, ambiance: 0, value: 0 });
   const [files, setFiles] = useState<File[]>([]);
-  const [previewUrls, setPreviewUrls] = useState<string[]>([]);
+  const [previews, setPreviews] = useState<string[]>([]);
   const [uploading, setUploading] = useState(false);
-  const [error, setError] = useState('');
-  // Removed size restriction
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
+  const inputRef = useRef<HTMLInputElement | null>(null);
 
-  const { user, isAuthenticated } = useAuth();
+  // compute overall rating using existing util to keep behaviour consistent
+  const overall = useMemo(() => computeWeightedRating(ratings), [ratings]);
 
-  const overallValue = useMemo(() => computeWeightedRating(formData), [formData]);
-  const missingCategories = useMemo(() => {
-    const missing: string[] = [];
-    ['taste','presentation','service','ambiance','value'].forEach(k => { // keys align with rating fields
-      // @ts-ignore
-      if (!formData[k]) missing.push(k);
+  useEffect(() => {
+    // generate previews when files change
+    const urls = files.map((f) => URL.createObjectURL(f));
+    // revoke previous
+    previews.forEach((u) => URL.revokeObjectURL(u));
+    setPreviews(urls);
+    return () => {
+      urls.forEach((u) => URL.revokeObjectURL(u));
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [files]);
+
+  useEffect(() => {
+    if (!isOpen) {
+      // reset when closed
+      setUsername("");
+      setComment("");
+      setRatings({ taste: 0, presentation: 0, service: 0, ambiance: 0, value: 0 });
+      setFiles([]);
+      setPreviews([]);
+      setUploading(false);
+      setError(null);
+      setSuccess(false);
+    }
+  }, [isOpen]);
+
+  const handleFiles = (selected: File[]) => {
+    const pick = selected.slice(0, MAX_IMAGES);
+    setFiles(pick);
+  };
+
+  const handleInputFiles: React.ChangeEventHandler<HTMLInputElement> = (e) => {
+    if (!e.target.files) return;
+    handleFiles(Array.from(e.target.files));
+  };
+
+  const removeImage = (idx: number) => {
+    const nextFiles = files.filter((_, i) => i !== idx);
+    setFiles(nextFiles);
+  };
+
+  const setRating = (key: keyof RatingBreakdown, value: number) => {
+    setRatings((s) => ({ ...s, [key]: value }));
+  };
+
+  const validate = () => {
+    if (!isAuthenticated && !username.trim()) {
+      setError("Please provide a name or sign in.");
+      return false;
+    }
+    if (!comment.trim()) {
+      setError("Please write a short review.");
+      return false;
+    }
+    const hasRating = Object.values(ratings).some((r) => r > 0);
+    if (!hasRating) {
+      setError("Please rate at least one category.");
+      return false;
+    }
+    return true;
+  };
+
+  const uploadImage = async (file: File) => {
+    // Keep same API contract as previous implementation
+    const dataUrl = await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result));
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
     });
-    return missing;
-  }, [formData]);
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const list = e.target.files ? Array.from(e.target.files) : [];
-    const selected = list.slice(0, 3);
-    setFiles(selected);
-    
-    // Create preview URLs
-    const urls = selected.map(file => URL.createObjectURL(file));
-    setPreviewUrls(urls);
+    const res = await fetch("/api/review-upload", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ file: dataUrl }),
+    });
+    if (!res.ok) throw new Error("Upload failed");
+    const body = await res.json();
+    return body?.secure_url || null;
   };
 
-  const handleRemoveImage = (index: number) => {
-    const newFiles = files.filter((_, i) => i !== index);
-    const newPreviews = previewUrls.filter((_, i) => i !== index);
-    
-    // Revoke the removed URL to free memory
-    URL.revokeObjectURL(previewUrls[index]);
-    
-    setFiles(newFiles);
-    setPreviewUrls(newPreviews);
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (!isAuthenticated && !formData.username.trim()) {
-      setError('Please provide a username');
-      return;
-    }
-
-    if (!isAuthenticated) {
-      setError('Please sign in to add a review');
-      return;
-    }
-
-    // Require a comment and at least one category rated
-    const hasAtLeastOne = ['taste','presentation','service','ambiance','value'].some(k => (formData as any)[k] > 0);
-    if (!formData.comment.trim()) {
-      setError('Please enter a comment');
-      return;
-    }
-    if (!hasAtLeastOne) {
-      setError('Please rate at least one category');
-      return;
-    }
-
-    const images: string[] = [];
+  const handleSubmit = async (e?: React.FormEvent) => {
+    e?.preventDefault();
+    setError(null);
+    if (!validate()) return;
+    setUploading(true);
     try {
-      // Guard (should already be prevented by disabled button)
-      if (files && files.length > 0) {
-        setUploading(true);
-        // limit to 3 files
-        const toUpload = files.slice(0, 3);
-        for (const f of toUpload) {
-          const dataUrl = await new Promise<string>((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onload = () => resolve(String(reader.result));
-            reader.onerror = reject;
-            reader.readAsDataURL(f);
-          });
-
-          const uploadRes = await fetch('/api/review-upload', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ file: dataUrl })
-          });
-
-          const uploadData = await uploadRes.json();
-          if (uploadRes.ok && uploadData?.secure_url) {
-            images.push(uploadData.secure_url);
-          }
+      const images: string[] = [];
+      if (files.length > 0) {
+        for (const f of files.slice(0, MAX_IMAGES)) {
+          const url = await uploadImage(f);
+          if (url) images.push(url);
         }
       }
-      // Compute weighted overall rating (out of 5) and delegate single mutation to parent
-  const overallRating = overallValue;
+
       await Promise.resolve(
         onSubmit({
-          username: user?.username || formData.username,
-          rating: overallRating,
-          comment: formData.comment.trim(),
+          username: isAuthenticated ? user?.username : username,
+          rating: overall,
+          comment: comment.trim(),
           images,
-          rating_breakdown: { taste: formData.taste, presentation: formData.presentation, service: formData.service, ambiance: formData.ambiance, value: formData.value }
+          rating_breakdown: ratings,
         })
       );
-  setFormData({ username: '', taste: 0, presentation: 0, service: 0, ambiance: 0, value: 0, comment: '' });
-      setFiles([]);
-      setError('');
-      onClose();
-    } catch (err: unknown) {
-  const msg = err && typeof err === 'object' && 'message' in err ? String((err as { message?: unknown }).message) : 'Submission failed';
-  setError(msg);
-  // No rollback logic here (would require parent to manage optimistic list); could add callback for failure.
+
+      setSuccess(true);
+      // short success state then close
+      setTimeout(() => {
+        setSuccess(false);
+        onClose();
+      }, 900);
+    } catch (err: any) {
+      setError(err?.message || "Submission failed");
     } finally {
       setUploading(false);
     }
   };
 
-  const handleClose = () => {
-  setFormData({ username: '', taste: 0, presentation: 0, service: 0, ambiance: 0, value: 0, comment: '' });
-    setFiles([]);
-    // Clean up preview URLs
-    previewUrls.forEach(url => URL.revokeObjectURL(url));
-    setPreviewUrls([]);
-    setError('');
-    onClose();
-  };
-
+  // small, modern modal design with glass and soft accents
   return (
     <AnimatePresence>
-  {isOpen && (
+      {isOpen && (
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
-          onClick={handleClose}
+          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm"
+          onClick={() => onClose()}
         >
           <motion.div
-            initial={{ scale: 0.9, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            exit={{ scale: 0.9, opacity: 0 }}
-            transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            className="glass-modal w-full max-w-md"
+            initial={{ y: "10%", scale: 0.98, opacity: 0 }}
+            animate={{ y: 0, scale: 1, opacity: 1 }}
+            exit={{ y: "10%", scale: 0.98, opacity: 0 }}
+            transition={{ type: "spring", damping: 20, stiffness: 300 }}
+            role="dialog"
+            aria-modal="true"
             onClick={(e) => e.stopPropagation()}
+            className="w-full max-w-2xl mx-4 sm:mx-0 bg-gradient-to-b from-white/3 to-white/2 border border-white/6 rounded-2xl shadow-2xl overflow-hidden"
           >
-            {/* Header */}
-            <div className="flex items-center justify-between mb-4 sm:mb-6">
-              <h2 className="text-xl sm:text-2xl font-bold text-white">
-                Review {restaurantName}
-              </h2>
+            <div className="px-5 py-4 flex items-center justify-between border-b border-white/6">
+              <div>
+                <h3 className="text-lg font-semibold text-white">Write a review</h3>
+                {restaurantName && <p className="text-xs text-white/60">{restaurantName}</p>}
+              </div>
               <button
-                onClick={handleClose}
-                className="glass-button p-2 hover:bg-red-500/20 hover:text-red-400"
+                aria-label="Close review dialog"
+                onClick={() => onClose()}
+                className="p-2 rounded-md text-white/70 hover:bg-white/5"
               >
                 <FaTimes />
               </button>
             </div>
 
-            {/* Form */}
-            <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
-              {/* If signed in show user info, otherwise username input */}
-              {!isAuthenticated ? (
+            <form onSubmit={handleSubmit} className="p-5 space-y-5 max-h-[80vh] overflow-y-auto">
+              {!isAuthenticated && (
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">Username</label>
+                  <label className="block text-xs text-white/70 mb-2">Your name</label>
                   <input
-                    type="text"
-                    value={formData.username}
-                    onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-                    className="glass-input w-full text-sm sm:text-base"
-                    placeholder="Enter your username"
-                    required
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                    placeholder="Name or nickname"
+                    className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/6 text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-orange-400/30"
                   />
                 </div>
-              ) : (
-                <div className="bg-white/5 p-3 rounded-lg">
-                  <p className="text-sm text-gray-300">Reviewing as: <span className="text-white font-medium">{user?.username}</span></p>
-                </div>
               )}
 
-              {/* Structured category ratings */}
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2 flex items-center justify-between">
-                  <span>Category ratings</span>
-                  {missingCategories.length > 0 && (
-                    <span className="text-[11px] text-orange-300/80">Missing: {missingCategories.join(', ')}</span>
-                  )}
-                </label>
-                <div className="grid grid-cols-1 gap-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-gray-300">Taste</span>
-                    <div className="flex items-center gap-3">
-                      <StarRating rating={formData.taste} onRatingChange={(r) => setFormData({ ...formData, taste: r })} />
-                      <span className="text-white font-medium">{formData.taste || '-'}</span>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-gray-300">Presentation</span>
-                    <div className="flex items-center gap-3">
-                      <StarRating rating={formData.presentation} onRatingChange={(r) => setFormData({ ...formData, presentation: r })} />
-                      <span className="text-white font-medium">{formData.presentation || '-'}</span>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-gray-300">Service</span>
-                    <div className="flex items-center gap-3">
-                      <StarRating rating={formData.service} onRatingChange={(r) => setFormData({ ...formData, service: r })} />
-                      <span className="text-white font-medium">{formData.service || '-'}</span>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-gray-300">Ambiance</span>
-                    <div className="flex items-center gap-3">
-                      <StarRating rating={formData.ambiance} onRatingChange={(r) => setFormData({ ...formData, ambiance: r })} />
-                      <span className="text-white font-medium">{formData.ambiance || '-'}</span>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-gray-300">Value</span>
-                    <div className="flex items-center gap-3">
-                      <StarRating rating={formData.value} onRatingChange={(r) => setFormData({ ...formData, value: r })} />
-                      <span className="text-white font-medium">{formData.value || '-'}</span>
-                    </div>
-                  </div>
-
-                  {/* computed overall display */}
-                  <div className="flex items-center justify-between mt-2 pt-2 border-t border-white/5">
-                    <span className="text-sm text-gray-300">Overall (weighted)</span>
-                    <div className="text-white font-semibold">
-                      {overallValue > 0 ? `${overallValue} / 5` : '- / 5'}
-                    </div>
-                  </div>
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-sm font-medium text-white">Rate categories</h4>
+                  <div className="text-xs text-white/60">Overall {overall > 0 ? overall.toFixed(1) : '-'}/5</div>
                 </div>
-              </div>
 
-              {/* Comment */}
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
-                  Comment
-                </label>
-                <textarea
-                  value={formData.comment}
-                  onChange={(e) => setFormData({ ...formData, comment: e.target.value })}
-                  className="glass-input w-full h-20 sm:h-24 resize-none text-sm sm:text-base"
-                  placeholder="Share your experience..."
-                  required
-                />
-              </div>
-
-              {/* Image Upload */}
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">Photos (optional, up to 3)</label>
-                
-                {/* Preview existing selected images */}
-                {previewUrls.length > 0 && (
-                  <div className="mb-3 grid grid-cols-3 gap-3">
-                    {previewUrls.map((url, idx) => (
-                      <div key={idx} className="group relative aspect-square overflow-hidden rounded-xl border border-white/10">
-                        <img
-                          src={url}
-                          alt={`Preview ${idx + 1}`}
-                          className="h-full w-full object-cover"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveImage(idx)}
-                          className="absolute right-2 top-2 rounded-full bg-red-500 p-1.5 text-white opacity-0 transition hover:bg-red-600 group-hover:opacity-100"
-                          aria-label="Remove image"
-                        >
-                          <FaTimes className="text-xs" />
-                        </button>
+                <div className="grid gap-3">
+                  {([
+                    ['taste', 'Taste'],
+                    ['presentation', 'Presentation'],
+                    ['service', 'Service'],
+                    ['ambiance', 'Ambiance'],
+                    ['value', 'Value'],
+                  ] as [keyof RatingBreakdown, string][]).map(([k, label]) => (
+                    <div key={k} className="flex items-center justify-between bg-white/3 border border-white/6 rounded-xl p-3">
+                      <div className="text-sm text-white">{label}</div>
+                      <div className="flex items-center gap-3">
+                        <StarRating rating={ratings[k]} onRatingChange={(r) => setRating(k, r)} />
+                        <div className="text-sm text-white/80 w-6 text-right">{ratings[k] || '-'}</div>
                       </div>
-                    ))}
-                  </div>
-                )}
-                
-                <input
-                  type="file"
-                  accept="image/*"
-                  multiple
-                  onChange={handleFileChange}
-                  className="w-full text-sm sm:text-base file:rounded file:bg-white/10 file:text-white file:py-2 file:px-3 file:cursor-pointer file:transition hover:file:bg-white/20"
-                />
-                <p className="text-[11px] sm:text-xs text-gray-400 mt-1">Max 3 images. Click X to remove.</p>
-                {uploading && <div className="text-sm text-gray-400 mt-2">Uploading images...</div>}
+                    </div>
+                  ))}
+                </div>
               </div>
 
-              {/* Submit Button */}
-              {error && (
-                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-red-400 text-sm text-center bg-red-400/10 p-3 rounded-lg">
-                  {error}
-                </motion.div>
-              )}
+              <div>
+                <label className="block text-xs text-white/70 mb-2">Your review</label>
+                <textarea
+                  rows={5}
+                  value={comment}
+                  onChange={(e) => setComment(e.target.value)}
+                  placeholder="Tell others what you liked and what could be improved"
+                  className="w-full p-3 rounded-xl bg-white/5 border border-white/6 text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-orange-400/30 resize-none"
+                />
+                <div className="text-xs text-white/50 mt-1">{comment.length} characters</div>
+              </div>
 
-              <motion.button
-                type="submit"
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                disabled={(!isAuthenticated && !formData.username.trim()) || !formData.comment.trim() || uploading}
-                className="glass-button w-full bg-white text-black hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed font-semibold py-2.5 sm:py-3 text-sm sm:text-base"
-                aria-disabled={(!isAuthenticated && !formData.username.trim()) || !formData.comment.trim() || uploading}
-              >
-                Submit Review
-              </motion.button>
+              <div>
+                <div className="flex items-center justify-between">
+                  <label className="text-sm text-white">Photos</label>
+                  <div className="text-xs text-white/50">Optional, up to {MAX_IMAGES}</div>
+                </div>
+
+                <div className="mt-3 grid grid-cols-3 gap-3">
+                  {previews.map((p, i) => (
+                    <div key={p} className="relative rounded-lg overflow-hidden h-24">
+                      <img src={p} alt={`preview-${i}`} className="object-cover w-full h-full" />
+                      <button
+                        type="button"
+                        onClick={() => removeImage(i)}
+                        className="absolute top-2 right-2 p-1 rounded-full bg-black/40 text-white"
+                        aria-label={`Remove photo ${i + 1}`}
+                      >
+                        <FaTrash />
+                      </button>
+                    </div>
+                  ))}
+
+                  {previews.length < MAX_IMAGES && (
+                    <label className="flex items-center justify-center border border-white/6 rounded-lg h-24 cursor-pointer bg-white/3 hover:bg-white/4">
+                      <input ref={inputRef} onChange={handleInputFiles} type="file" accept="image/*" multiple className="hidden" />
+                      <div className="text-center text-white/70">
+                        <FaImage className="mx-auto mb-1 text-2xl" />
+                        <div className="text-xs">Add photo</div>
+                      </div>
+                    </label>
+                  )}
+                </div>
+              </div>
+
+              {error && <div className="p-3 bg-red-600/10 text-red-300 rounded-lg">{error}</div>}
+              {success && <div className="p-3 bg-green-600/10 text-green-300 rounded-lg">Review submitted</div>}
+
+              <div className="flex flex-col sm:flex-row gap-3">
+                <button
+                  type="submit"
+                  onClick={(e) => handleSubmit(e)}
+                  disabled={uploading}
+                  className="flex-1 inline-flex items-center justify-center gap-3 bg-gradient-to-r from-orange-600 to-orange-500 hover:from-orange-500 hover:to-orange-600 text-white font-semibold py-3 px-4 rounded-xl shadow-md disabled:opacity-60"
+                >
+                  {uploading ? (
+                    <>
+                      <div className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      Submitting...
+                    </>
+                  ) : (
+                    <>
+                      <FaCheckCircle />
+                      Submit review
+                    </>
+                  )}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => onClose()}
+                  className="flex-1 py-3 px-4 rounded-xl border border-white/6 text-white/80 hover:bg-white/5"
+                >
+                  Cancel
+                </button>
+              </div>
             </form>
           </motion.div>
         </motion.div>

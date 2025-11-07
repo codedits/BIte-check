@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -17,6 +17,15 @@ export default function Navbar() {
   const pathname = usePathname();
   const { user, isAuthenticated, logout } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setScrolled(window.scrollY > 20);
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   const handleLogout = async () => {
     await logout();
@@ -26,7 +35,7 @@ export default function Navbar() {
   const renderLink = (href: string, label: string, isMobile = false) => {
     const isActive = pathname === href;
     const baseClasses = isMobile
-      ? 'block w-full text-left text-base'
+      ? 'flex items-center w-full text-left text-base'
       : 'text-sm font-medium';
     return (
       <Link
@@ -34,8 +43,10 @@ export default function Navbar() {
         href={href}
         aria-current={isActive ? 'page' : undefined}
         onClick={() => setMobileOpen(false)}
-        className={`${baseClasses} rounded-full px-3 py-2 transition-colors ${
-          isActive ? 'bg-white text-black' : 'text-white/70 hover:text-white hover:bg-white/10'
+        className={`${baseClasses} rounded-lg px-4 py-2 transition-all ${
+          isActive 
+            ? 'bg-orange-500 text-white' 
+            : 'text-white/70 hover:text-white hover:bg-white/10'
         }`}
       >
         {label}
@@ -48,24 +59,47 @@ export default function Navbar() {
       initial={{ y: -48, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
       transition={{ duration: 0.35, ease: 'easeOut' }}
-      className="sticky top-0 z-40 border-b border-white/10 bg-black/70 backdrop-blur-xl"
+      className={`sticky top-0 z-40 border-b transition-all duration-300 ${
+        scrolled 
+          ? 'border-white/10 bg-black/90 backdrop-blur-xl shadow-lg' 
+          : 'border-white/5 bg-black/70 backdrop-blur-lg'
+      }`}
       role="navigation"
       aria-label="Primary"
     >
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6">
-        <Link href="/" className="font-semibold tracking-tight text-white">
-          BiteCheck
+        {/* Logo */}
+        <Link href="/" className="flex items-center gap-2">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-orange-500">
+            <span className="text-sm font-bold text-white">B</span>
+          </div>
+          <span className="text-lg font-bold text-white">
+            BiteCheck
+          </span>
         </Link>
-        <div className="hidden items-center gap-6 md:flex">
+
+        {/* Desktop Navigation */}
+        <div className="hidden items-center gap-1 md:flex">
           {links.map((link) => renderLink(link.href, link.label))}
         </div>
+
+        {/* Desktop Auth */}
         <div className="hidden items-center gap-3 md:flex">
           {isAuthenticated ? (
             <>
-              <span className="text-sm text-white/60">Hi, {user?.username || 'Critic'}</span>
+              <div className="flex items-center gap-2">
+                <div className="h-8 w-8 rounded-full bg-orange-500 flex items-center justify-center">
+                  <span className="text-xs font-bold text-white">
+                    {user?.username?.charAt(0).toUpperCase() || 'U'}
+                  </span>
+                </div>
+                <span className="text-sm text-white/70">
+                  {user?.username || 'User'}
+                </span>
+              </div>
               <button
                 onClick={handleLogout}
-                className="rounded-full bg-white/10 px-3 py-1 text-sm text-white transition-colors hover:bg-white/20"
+                className="rounded-lg border border-white/20 bg-white/5 px-4 py-2 text-sm font-medium text-white transition-all hover:bg-white/10"
               >
                 Sign out
               </button>
@@ -74,22 +108,24 @@ export default function Navbar() {
             <>
               <Link
                 href="/auth/signin"
-                className="rounded-full px-3 py-1 text-sm text-white/70 transition-colors hover:text-white"
+                className="rounded-lg px-4 py-2 text-sm font-medium text-white/70 transition-colors hover:text-white"
               >
                 Sign in
               </Link>
               <Link
                 href="/auth/signup"
-                className="rounded-full bg-white px-4 py-2 text-sm font-semibold text-black transition-transform hover:-translate-y-0.5"
+                className="rounded-lg bg-orange-500 px-5 py-2 text-sm font-semibold text-white transition-all hover:bg-orange-600"
               >
-                Join BiteCheck
+                Get Started
               </Link>
             </>
           )}
         </div>
+
+        {/* Mobile Menu Button */}
         <button
           onClick={() => setMobileOpen((open) => !open)}
-          className="flex h-9 w-9 items-center justify-center rounded-full border border-white/10 text-white md:hidden"
+          className="flex h-9 w-9 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-white transition-all hover:bg-white/10 md:hidden"
           aria-label="Toggle navigation"
           aria-expanded={mobileOpen}
           aria-controls="mobile-navigation"
@@ -97,46 +133,58 @@ export default function Navbar() {
           {mobileOpen ? <FaTimes /> : <FaBars />}
         </button>
       </div>
+
+      {/* Mobile Menu */}
       <AnimatePresence>
         {mobileOpen && (
           <motion.div
             id="mobile-navigation"
-            initial={{ opacity: 0, y: -12 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -12 }}
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
             transition={{ duration: 0.2 }}
-            className="border-t border-white/10 bg-black/90 md:hidden"
+            className="border-t border-white/10 bg-black/95 md:hidden overflow-hidden"
           >
-            <div className="mx-auto flex max-w-6xl flex-col gap-4 px-4 py-5 text-white">
+            <div className="mx-auto flex max-w-6xl flex-col gap-3 px-4 py-5 text-white">
               <div className="flex flex-col gap-2">
                 {links.map((link) => renderLink(link.href, link.label, true))}
               </div>
               <div className="h-px bg-white/10" />
               {isAuthenticated ? (
-                <div className="flex flex-col gap-3 text-sm text-white/70">
-                  <span>Signed in as {user?.username || 'Anonymous'}</span>
+                <div className="flex flex-col gap-3">
+                  <div className="flex items-center gap-3">
+                    <div className="h-10 w-10 rounded-full bg-orange-500 flex items-center justify-center">
+                      <span className="text-sm font-bold text-white">
+                        {user?.username?.charAt(0).toUpperCase() || 'U'}
+                      </span>
+                    </div>
+                    <div>
+                      <p className="font-medium text-white">{user?.username || 'Anonymous'}</p>
+                      <p className="text-xs text-white/60">Signed in</p>
+                    </div>
+                  </div>
                   <button
                     onClick={handleLogout}
-                    className="rounded-full bg-white/10 px-4 py-2 text-left text-white hover:bg-white/15"
+                    className="rounded-lg border border-white/20 bg-white/5 px-4 py-2.5 text-left font-medium text-white hover:bg-white/10"
                   >
                     Sign out
                   </button>
                 </div>
               ) : (
-                <div className="flex flex-col gap-3">
+                <div className="flex flex-col gap-2">
                   <Link
                     href="/auth/signin"
                     onClick={() => setMobileOpen(false)}
-                    className="rounded-full border border-white/10 px-4 py-2 text-center text-sm text-white/80 hover:text-white"
+                    className="rounded-lg border border-white/20 bg-white/5 px-4 py-2.5 text-center text-sm font-medium text-white hover:bg-white/10"
                   >
                     Sign in
                   </Link>
                   <Link
                     href="/auth/signup"
                     onClick={() => setMobileOpen(false)}
-                    className="rounded-full bg-white px-4 py-2 text-center text-sm font-semibold text-black"
+                    className="rounded-lg bg-orange-500 px-4 py-2.5 text-center text-sm font-semibold text-white hover:bg-orange-600"
                   >
-                    Join BiteCheck
+                    Get Started
                   </Link>
                 </div>
               )}
