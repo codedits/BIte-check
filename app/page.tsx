@@ -380,15 +380,15 @@ export default function HomePage() {
             <div className="rounded-2xl border border-white/10 bg-transparent p-10 md:p-12">
               <FaQuoteLeft className="mx-auto text-orange-500/30 text-4xl mb-6" />
               <p className="text-xl sm:text-2xl md:text-3xl font-semibold text-white mb-8 leading-relaxed">
-                "The most authentic restaurant reviews I've found. No fluff, just real experiences from real food lovers."
+                "The only time to eat diet food is while you're waiting for the steak to cook."
               </p>
               <div className="flex items-center justify-center gap-4">
                 <div className="h-12 w-12 rounded-full bg-orange-500 flex items-center justify-center">
                   <span className="text-sm font-bold text-white">SC</span>
                 </div>
                 <div className="text-left">
-                  <p className="text-white font-semibold">Sarah Chen</p>
-                  <p className="text-white/50 text-sm">Food Enthusiast</p>
+                  <p className="text-white font-semibold">Julia Child</p>
+                  <p className="text-white/50 text-sm">Food Critic</p>
                 </div>
               </div>
             </div>
