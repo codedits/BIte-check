@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -20,19 +20,29 @@ export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
 
   useEffect(() => {
+    let ticking = false;
     const handleScroll = () => {
-      setScrolled(window.scrollY > 20);
+      if (!ticking) {
+        window.requestAnimationFrame(() => {
+          setScrolled(window.scrollY > 20);
+          ticking = false;
+        });
+        ticking = true;
+      }
     };
-    window.addEventListener('scroll', handleScroll);
+    window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  const handleLogout = async () => {
+  const handleLogout = useCallback(async () => {
     await logout();
     setMobileOpen(false);
-  };
+  }, [logout]);
 
-  const renderLink = (href: string, label: string, isMobile = false) => {
+  const closeMobileMenu = useCallback(() => setMobileOpen(false), []);
+  const toggleMobileMenu = useCallback(() => setMobileOpen(open => !open), []);
+
+  const renderLink = useCallback((href: string, label: string, isMobile = false) => {
     const isActive = pathname === href;
     const baseClasses = isMobile
       ? 'flex items-center w-full text-left text-base'
@@ -42,7 +52,7 @@ export default function Navbar() {
         key={href}
         href={href}
         aria-current={isActive ? 'page' : undefined}
-        onClick={() => setMobileOpen(false)}
+        onClick={closeMobileMenu}
         className={`${baseClasses} rounded-lg px-4 py-2 transition-all ${
           isActive 
             ? 'bg-orange-500 text-white' 
@@ -52,7 +62,7 @@ export default function Navbar() {
         {label}
       </Link>
     );
-  };
+  }, [pathname, closeMobileMenu]);
 
   return (
     <motion.nav
@@ -70,11 +80,8 @@ export default function Navbar() {
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6">
         {/* Logo */}
         <Link href="/" className="flex items-center gap-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-orange-500">
-            <span className="text-sm font-bold text-white">B</span>
-          </div>
-          <span className="text-lg font-bold text-white">
-            BiteCheck
+          <span className="text-xl font-black text-white">
+            Bite<span className="text-orange-500">Check</span>
           </span>
         </Link>
 
@@ -88,11 +95,19 @@ export default function Navbar() {
           {isAuthenticated ? (
             <>
               <div className="flex items-center gap-2">
-                <div className="h-8 w-8 rounded-full bg-orange-500 flex items-center justify-center">
-                  <span className="text-xs font-bold text-white">
-                    {user?.username?.charAt(0).toUpperCase() || 'U'}
-                  </span>
-                </div>
+                {user?.image ? (
+                  <img 
+                    src={user.image} 
+                    alt={user?.username || 'User'} 
+                    className="h-8 w-8 rounded-full object-cover ring-2 ring-orange-500/20"
+                  />
+                ) : (
+                  <div className="h-8 w-8 rounded-full bg-orange-500 flex items-center justify-center">
+                    <span className="text-xs font-bold text-white">
+                      {user?.username?.charAt(0).toUpperCase() || 'U'}
+                    </span>
+                  </div>
+                )}
                 <span className="text-sm text-white/70">
                   {user?.username || 'User'}
                 </span>
@@ -124,7 +139,7 @@ export default function Navbar() {
 
         {/* Mobile Menu Button */}
         <button
-          onClick={() => setMobileOpen((open) => !open)}
+          onClick={toggleMobileMenu}
           className="flex h-9 w-9 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-white transition-all hover:bg-white/10 md:hidden"
           aria-label="Toggle navigation"
           aria-expanded={mobileOpen}
@@ -153,11 +168,19 @@ export default function Navbar() {
               {isAuthenticated ? (
                 <div className="flex flex-col gap-3">
                   <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-full bg-orange-500 flex items-center justify-center">
-                      <span className="text-sm font-bold text-white">
-                        {user?.username?.charAt(0).toUpperCase() || 'U'}
-                      </span>
-                    </div>
+                    {user?.image ? (
+                      <img 
+                        src={user.image} 
+                        alt={user?.username || 'User'} 
+                        className="h-10 w-10 rounded-full object-cover ring-2 ring-orange-500/20"
+                      />
+                    ) : (
+                      <div className="h-10 w-10 rounded-full bg-orange-500 flex items-center justify-center">
+                        <span className="text-sm font-bold text-white">
+                          {user?.username?.charAt(0).toUpperCase() || 'U'}
+                        </span>
+                      </div>
+                    )}
                     <div>
                       <p className="font-medium text-white">{user?.username || 'Anonymous'}</p>
                       <p className="text-xs text-white/60">Signed in</p>
@@ -174,14 +197,14 @@ export default function Navbar() {
                 <div className="flex flex-col gap-2">
                   <Link
                     href="/auth/signin"
-                    onClick={() => setMobileOpen(false)}
+                    onClick={closeMobileMenu}
                     className="rounded-lg border border-white/20 bg-white/5 px-4 py-2.5 text-center text-sm font-medium text-white hover:bg-white/10"
                   >
                     Sign in
                   </Link>
                   <Link
                     href="/auth/signup"
-                    onClick={() => setMobileOpen(false)}
+                    onClick={closeMobileMenu}
                     className="rounded-lg bg-orange-500 px-4 py-2.5 text-center text-sm font-semibold text-white hover:bg-orange-600"
                   >
                     Get Started

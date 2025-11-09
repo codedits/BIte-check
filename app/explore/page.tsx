@@ -103,8 +103,13 @@ export default function ExplorePage() {
   };
 
   return (
-    <div className="min-h-screen bg-black pt-20 pb-16 px-4 sm:px-6">
-      <div className="mx-auto max-w-7xl">
+    <div className="relative min-h-screen bg-black pt-20 pb-16 px-4 sm:px-6">
+      {/* Subtle Background - Same as Homepage */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-orange-500/5 rounded-full blur-[100px]" />
+      </div>
+
+      <div className="relative mx-auto max-w-7xl">
         {/* Header */}
         <motion.div 
           initial={{ opacity: 0, y: 12 }} 
@@ -132,7 +137,7 @@ export default function ExplorePage() {
               <input
                 type="text"
                 aria-label="Search restaurants"
-                className="w-full rounded-full border border-white/10 bg-white/5 py-3 pl-12 pr-4 text-white placeholder-white/40 outline-none transition focus:border-white/30 focus:ring-2 focus:ring-white/20"
+                className="w-full rounded-full border border-white/10 bg-transparent py-3 pl-12 pr-4 text-white placeholder-white/40 outline-none transition focus:border-white/30 focus:ring-2 focus:ring-white/20"
                 placeholder="Search by name or cuisine..."
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
@@ -145,7 +150,7 @@ export default function ExplorePage() {
                 whileTap={{ scale: 0.98 }}
                 onClick={handleFindNearby}
                 disabled={isLocating}
-                className="rounded-full border border-white/20 bg-white/5 px-5 py-2 text-sm font-medium text-white/90 transition hover:bg-white/10 disabled:opacity-50"
+                className="rounded-full border border-white/20 bg-transparent px-5 py-2 text-sm font-medium text-white/90 transition hover:bg-transparent disabled:opacity-50"
               >
                 {isLocating ? 'Locating…' : 'Near me'}
               </motion.button>
@@ -173,7 +178,7 @@ export default function ExplorePage() {
               <motion.div
                 initial={{ opacity: 0, y: -6 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-center text-xs text-white/60"
+                className="rounded-full border border-white/10 bg-transparent px-4 py-2 text-center text-xs text-white/60"
               >
                 Showing nearest restaurant
               </motion.div>
@@ -192,7 +197,7 @@ export default function ExplorePage() {
         <motion.div
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
-          className="rounded-3xl border border-white/10 bg-white/5 px-8 py-20 text-center backdrop-blur-xl"
+          className="rounded-3xl border border-white/10 bg-transparent px-8 py-20 text-center backdrop-blur-xl"
         >
           <div className="mb-3 text-xl text-red-400">Error loading restaurants</div>
           <div className="mb-6 text-sm text-white/60">{error}</div>
@@ -231,7 +236,7 @@ export default function ExplorePage() {
           <motion.div
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
-            className="rounded-3xl border border-white/10 bg-white/5 px-8 py-20 text-center backdrop-blur-xl"
+            className="rounded-3xl border border-white/10 bg-transparent px-8 py-20 text-center backdrop-blur-xl"
           >
             <div className="mb-3 text-xl text-white/80">No restaurants found</div>
             <div className="mb-6 text-sm text-white/60">

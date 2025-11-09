@@ -1,5 +1,5 @@
 "use client";
-import { useMemo } from 'react';
+import { useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { FaArrowRight, FaStar, FaMapMarkerAlt, FaUtensils, FaQuoteLeft, FaUsers, FaCheckCircle, FaTrophy } from 'react-icons/fa';
 import { useRestaurants } from '@/hooks/useRestaurants';
@@ -13,6 +13,9 @@ export default function HomePage() {
   const router = useRouter();
   const { restaurants, loading } = useRestaurants();
   const { isAuthenticated } = useAuth();
+
+  const navigateToExplore = useCallback(() => router.push('/explore'), [router]);
+  const navigateToSignup = useCallback(() => router.push('/auth/signup'), [router]);
 
   const featured = useMemo(() => {
     if (!restaurants || restaurants.length === 0) return [];
@@ -100,7 +103,7 @@ export default function HomePage() {
             {/* CTA Buttons */}
             <div className="flex flex-wrap items-center justify-center gap-4">
               <button
-                onClick={() => router.push('/explore')}
+                onClick={navigateToExplore}
                 className="group inline-flex items-center gap-2 rounded-lg bg-orange-500 px-8 py-4 text-base font-semibold text-white shadow-lg shadow-orange-500/20 transition-all hover:bg-orange-600 hover:shadow-xl"
               >
                 Explore Restaurants
@@ -109,8 +112,8 @@ export default function HomePage() {
               
               {!isAuthenticated && (
                 <button
-                  onClick={() => router.push('/auth/signup')}
-                  className="inline-flex items-center gap-2 rounded-lg border border-white/20 bg-white/5 px-8 py-4 text-base font-semibold text-white transition-all hover:bg-white/10"
+                  onClick={navigateToSignup}
+                  className="inline-flex items-center gap-2 rounded-lg border border-white/20 bg-transparent px-8 py-4 text-base font-semibold text-white transition-all hover:bg-transparent"
                 >
                   Join Free
                 </button>
@@ -129,7 +132,7 @@ export default function HomePage() {
             {stats.map((stat, idx) => (
               <div
                 key={stat.label}
-                className="rounded-xl border border-white/10 bg-white/5 p-6 text-center"
+                className="rounded-xl border border-white/10 bg-transparent p-6 text-center"
               >
                 <stat.icon className="mx-auto text-orange-500 text-2xl mb-3" />
                 <div className="text-2xl font-bold text-white mb-1">{stat.value}</div>
@@ -149,7 +152,7 @@ export default function HomePage() {
             >
               <button
                 onClick={() => router.push(`/restaurant/${topPick._id}`)}
-                className="group relative w-full max-w-5xl mx-auto overflow-hidden rounded-2xl border border-white/10 bg-white/5 transition-all hover:border-orange-500/30 hover:shadow-xl"
+                className="group relative w-full max-w-5xl mx-auto overflow-hidden rounded-2xl border border-white/10 bg-transparent transition-all hover:border-orange-500/30 hover:shadow-xl"
               >
                 <div className="grid md:grid-cols-2 gap-0">
                   {/* Image */}
@@ -158,7 +161,7 @@ export default function HomePage() {
                       const src = normalizeImageSrc(topPick.image);
                       if (!src) {
                         return (
-                          <div className="h-full flex items-center justify-center bg-white/5">
+                          <div className="h-full flex items-center justify-center bg-transparent">
                             <FaUtensils className="text-white/20 text-6xl" />
                           </div>
                         );
@@ -247,7 +250,7 @@ export default function HomePage() {
                 viewport={{ once: true }}
                 transition={{ duration: 0.6, delay: idx * 0.1 }}
               >
-                <div className="rounded-xl border border-white/10 bg-white/5 p-6 transition-all hover:border-orange-500/30">
+                <div className="rounded-xl border border-white/10 bg-transparent p-6 transition-all hover:border-orange-500/30">
                   <div className="inline-flex items-center justify-center w-12 h-12 rounded-lg bg-orange-500/10 mb-4">
                     <feature.icon className="text-orange-500 text-xl" />
                   </div>
@@ -277,7 +280,7 @@ export default function HomePage() {
                 <p className="text-3xl sm:text-4xl font-bold text-white">Top Restaurants</p>
               </div>
               <button
-                onClick={() => router.push('/explore')}
+                onClick={() => navigateToExplore()}
                 className="hidden sm:flex items-center gap-2 text-sm text-white/60 hover:text-white transition-colors group"
               >
                 <span>View All</span>
@@ -297,7 +300,7 @@ export default function HomePage() {
                   viewport={{ once: true }}
                   transition={{ duration: 0.6, delay: idx * 0.1 }}
                   onClick={() => router.push(`/restaurant/${restaurant._id}`)}
-                  className="group relative overflow-hidden rounded-xl border border-white/10 bg-white/5 text-left transition-all hover:border-orange-500/30 hover:shadow-lg"
+                  className="group relative overflow-hidden rounded-xl border border-white/10 bg-transparent text-left transition-all hover:border-orange-500/30 hover:shadow-lg"
                 >
                   {/* Image */}
                   <div className="relative h-56 overflow-hidden">
@@ -312,7 +315,7 @@ export default function HomePage() {
                         loading="lazy"
                       />
                     ) : (
-                      <div className="flex h-full items-center justify-center bg-white/5">
+                      <div className="flex h-full items-center justify-center bg-transparent">
                         <FaUtensils className="text-white/20 text-4xl" />
                       </div>
                     )}
@@ -348,7 +351,7 @@ export default function HomePage() {
 
           {featured.length === 0 && (
             <div className="text-center py-16">
-              <div className="inline-flex items-center justify-center w-20 h-20 rounded-xl bg-white/5 border border-white/10 mb-6">
+              <div className="inline-flex items-center justify-center w-20 h-20 rounded-xl bg-transparent border border-white/10 mb-6">
                 <FaUtensils className="text-orange-500 text-3xl" />
               </div>
               <h3 className="text-2xl font-bold text-white mb-3">No restaurants yet</h3>
@@ -374,7 +377,7 @@ export default function HomePage() {
             transition={{ duration: 0.6 }}
             className="text-center"
           >
-            <div className="rounded-2xl border border-white/10 bg-white/5 p-10 md:p-12">
+            <div className="rounded-2xl border border-white/10 bg-transparent p-10 md:p-12">
               <FaQuoteLeft className="mx-auto text-orange-500/30 text-4xl mb-6" />
               <p className="text-xl sm:text-2xl md:text-3xl font-semibold text-white mb-8 leading-relaxed">
                 "The most authentic restaurant reviews I've found. No fluff, just real experiences from real food lovers."

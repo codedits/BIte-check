@@ -74,22 +74,53 @@ const CloudImage: React.FC<CloudImageProps> = memo(({
   loading = 'lazy',
   priority = false 
 }) => {
-  const optimized = buildCloudinaryUrl({ rawSrc: src, width, height, cloudName, fillCrop });
+  // Build responsive srcsets (use a sensible set of widths)
+  const candidateWidths = [320, 480, 640, 768, 1024, 1280, 1600, 1920];
+  // If a target width is provided, prefer sizes around it
+  const widths = width
+    ? Array.from(new Set([Math.max(320, Math.round(width / 2)), width, Math.round(width * 1.5), Math.round(width * 2)]))
+        .filter(Boolean)
+        .map(w => Math.min(w, 1920))
+    : candidateWidths;
+
+  const buildSrcSet = () =>
+    widths
+      .map((w) => {
+        // Request width-specific transformation
+        const url = buildCloudinaryUrl({ rawSrc: src, width: w, height: undefined, cloudName, fillCrop });
+        // Cloudinary f_auto will already prefer modern formats
+        return `${url} ${w}w`;
+      })
+      .join(', ');
+
+  const srcSet = buildSrcSet();
+  const webpSrcSet = buildSrcSet();
+
+  const sizes = width ? `${width}px` : '(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw';
+
+  const fallbackImg = buildCloudinaryUrl({ rawSrc: src, width: width || 800, height, cloudName, fillCrop });
+
   const style: React.CSSProperties = !width && !height ? { maxWidth: '100%', height: 'auto' } : {};
-  
+
   return (
-    // eslint-disable-next-line @next/next/no-img-element
-    <img
-      src={optimized}
-      alt={alt}
-      loading={priority ? 'eager' : loading}
-      width={width || undefined}
-      height={height || undefined}
-      className={className}
-      style={style}
-      decoding="async"
-      fetchPriority={priority ? 'high' : undefined}
-    />
+    <picture>
+      {/* Prefer WebP/AVIF via Cloudinary's f_auto/q_auto but provide explicit srcset for browsers */}
+      <source type="image/webp" srcSet={webpSrcSet} sizes={sizes} />
+      {/* Fallback source (browser will pick the best available) */}
+      <img
+        src={fallbackImg}
+        srcSet={srcSet}
+        sizes={sizes}
+        alt={alt}
+        loading={priority ? 'eager' : loading}
+        width={width || undefined}
+        height={height || undefined}
+        className={className}
+        style={style}
+        decoding="async"
+        fetchPriority={priority ? 'high' : undefined}
+      />
+    </picture>
   );
 }, (prevProps, nextProps) => {
   // Custom comparison for memo optimization

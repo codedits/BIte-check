@@ -25,7 +25,8 @@ export function AuthProvider({ children }) {
       setUser({
         id: session.user.id,
         email: session.user.email,
-        username: session.user.username
+        username: session.user.username,
+        image: session.user.image // Add profile image
       });
       setLoading(false);
     } else {

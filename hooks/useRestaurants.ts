@@ -16,7 +16,8 @@ export function useRestaurants() {
   const { data, isLoading, error, refetch, isFetching } = useQuery({
     queryKey: ['restaurants'],
     queryFn: fetchRestaurantsRequest,
-    staleTime: 60_000,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 10 * 60 * 1000, // Keep cached for 10 minutes
   });
 
   return {
